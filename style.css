@@ -147,7 +147,7 @@ dialog {
   width: 100%; max-width: 100%;
   border-radius: 24px 24px 0 0;
   background: var(--card); color: var(--text);
-  max-height: 92dvh; overflow-y: auto;
+  max-height: 92dvh; overflow-y: auto; overflow-x: hidden;
 }
 dialog[open] { animation: sheet-up .25s cubic-bezier(.2, .8, .2, 1); }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -171,8 +171,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 input[name="amount"] { font-size: 1.5rem; font-weight: 600; padding: 10px 14px; }
 
 .segmented { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-radius: 14px; padding: 4px; }
-.segmented label { display: block; }
-.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented label { display: block; position: relative; }
+.segmented input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
 .segmented span { display: block; text-align: center; padding: 10px; border-radius: 11px; font-weight: 500; color: var(--muted); cursor: pointer; transition: background .15s; }
 .segmented input[value="in"]:checked + span { background: var(--in); color: #fff; }
 .segmented input[value="out"]:checked + span { background: var(--out); color: #fff; }
@@ -234,7 +234,8 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 #planBody .segmented span { font-size: .88rem; padding: 10px 6px; }
 .segmented input:checked + span { background: var(--primary); color: var(--on-primary); }
 
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.two-col > * { min-width: 0; }
 .readonly { background: var(--bg); border-radius: 14px; padding: 12px 14px; color: var(--text); font-weight: 600; font-size: 16px; }
 .sub-head { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; font-weight: 600; }
 .sub-head small { color: var(--muted); font-weight: 400; font-size: .8rem; }
@@ -247,9 +248,10 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
   background: var(--primary); color: var(--on-primary); font-size: .8rem; font-weight: 600;
 }
-.step-fields { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.step-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px; }
 dialog label.inline { flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; color: var(--muted); }
-dialog label.inline input, dialog label.inline select { min-width: 0; padding: 10px 10px; }
+dialog label.inline { min-width: 0; }
+dialog label.inline input, dialog label.inline select { flex: 1 1 0; min-width: 0; width: 100%; padding: 10px; }
 .row-del {
   width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--muted);
   display: grid; place-items: center; cursor: pointer; flex: none;
@@ -275,3 +277,10 @@ dialog label.inline input, dialog label.inline select { min-width: 0; padding: 1
 .year-table td { padding: 8px 6px; border-top: 1px solid color-mix(in srgb, var(--primary) 15%, transparent); }
 .year-table td small { display: block; color: var(--muted); font-size: .75rem; }
 .year-table th:last-child, .year-table td:last-child { text-align: right; font-weight: 600; }
+dialog form, dialog .menu { min-width: 0; }
+html, body { overflow-x: clip; }
+.row-head {
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px;
+  padding: 0 42px 0 34px; margin-bottom: -6px; font-size: .78rem; color: var(--muted);
+}
+.row-head.extra { padding-left: 0; }

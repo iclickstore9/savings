@@ -174,8 +174,8 @@ function renderPlanForm() {
       <div class="step-row">
         <span class="step-no">${i + 1}</span>
         <div class="step-fields">
-          <label class="inline">เดือนละ ${numInput(`steps.${i}.amount`, s.amount, 'บาท')}</label>
-          <label class="inline">นาน ${numInput(`steps.${i}.months`, s.months, last ? 'ตลอด' : 'เดือน', 'short')} เดือน</label>
+          <label class="inline">${numInput(`steps.${i}.amount`, s.amount, 'บาท/เดือน')}</label>
+          <label class="inline">${numInput(`steps.${i}.months`, s.months, last ? 'ตลอด' : '0', 'short')}</label>
         </div>
         ${p.steps.length > 1 ? `<button type="button" class="row-del" data-del="steps.${i}" aria-label="ลบ">${ico('x')}</button>` : ''}
       </div>`;
@@ -190,7 +190,7 @@ function renderPlanForm() {
       <div class="step-row">
         <div class="step-fields">
           <label class="inline">${numInput(`extras.${i}.amount`, e.amount, 'บาท')}</label>
-          <label class="inline">ทุกเดือน <select data-path="extras.${i}.month">${monthOpts(e.month)}</select></label>
+          <label class="inline"><select data-path="extras.${i}.month">${monthOpts(e.month)}</select></label>
         </div>
         <button type="button" class="row-del" data-del="extras.${i}" aria-label="ลบ">${ico('x')}</button>
       </div>`
@@ -212,6 +212,7 @@ function renderPlanForm() {
 
     ${p.mode === 'time' ? `
     <div class="sub-head"><span>ฝากรายเดือน</span><small>ทำเป็นขั้นบันไดได้</small></div>
+    <div class="row-head"><span>ยอดฝาก/เดือน</span><span>นานกี่เดือน</span></div>
     <div class="rows">${stepsHtml}</div>
     <button type="button" class="link-btn" data-add="steps">${ico('plus')} เพิ่มขั้น</button>
     ` : `
@@ -223,6 +224,7 @@ function renderPlanForm() {
     `}
 
     <div class="sub-head"><span>เงินก้อนรายปี</span><small>เช่น โบนัส, เงินปันผล</small></div>
+    ${extrasHtml ? '<div class="row-head extra"><span>จำนวนเงิน</span><span>เข้าทุกเดือน</span></div>' : ''}
     <div class="rows">${extrasHtml || '<div class="muted small">ยังไม่มี</div>'}</div>
     <button type="button" class="link-btn" data-add="extras">${ico('plus')} เพิ่มเงินก้อน</button>
 
