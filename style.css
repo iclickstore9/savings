@@ -28,6 +28,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
+/* ปิด pull-to-refresh ของเบราว์เซอร์มือถือทั้งแอป */
+html, body { overscroll-behavior-y: none; }
 body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
 button { font-family: inherit; }
 

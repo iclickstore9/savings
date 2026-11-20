@@ -1,7 +1,8 @@
 'use strict';
 
 /* ================= ข้อมูล ================= */
-const STORAGE_KEY = 'kapook-om-v1';
+const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
+const APP_VERSION = '6';
 const GOAL_ICONS = [
   'house', 'shield-check', 'car', 'plane', 'graduation-cap',
   'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
@@ -464,6 +465,7 @@ function enableSwipeToClose(d) {
   d.addEventListener('touchcancel', end);
 }
 
+document.getElementById('appVersion').textContent = 'เวอร์ชัน ' + APP_VERSION;
 document.querySelectorAll('[data-ico]').forEach((el) => (el.outerHTML = ico(el.dataset.ico)));
 window.addEventListener('hashchange', render);
 render();
@@ -473,5 +475,5 @@ navigator.storage?.persist?.();
 
 // PWA: ใช้งานออฟไลน์
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }));
 }
