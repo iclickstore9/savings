@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>กระปุกออม</title>
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="กระปุกออม" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button id="backBtn" class="icon-btn" aria-label="ย้อนกลับ" hidden>‹</button>
+    <h1 id="title">กระปุกออม</h1>
+    <button id="menuBtn" class="icon-btn" aria-label="เมนู">⋯</button>
+  </header>
+
+  <main id="app"></main>
+
+  <button id="fab" class="fab" aria-label="เพิ่ม">＋</button>
+
+  <!-- ฟอร์มเป้าหมาย -->
+  <dialog id="goalDialog">
+    <form id="goalForm" method="dialog">
+      <h2 id="goalDialogTitle">เป้าหมายใหม่</h2>
+      <label>ชื่อ
+        <input name="name" required maxlength="40" placeholder="เช่น สร้างบ้าน, จ่ายประกัน" />
+      </label>
+      <label>ไอคอน
+        <div class="emoji-row" id="emojiRow"></div>
+        <input type="hidden" name="emoji" />
+      </label>
+      <label>เป้าหมาย (บาท) <small>ไม่ใส่ก็ได้</small>
+        <input name="target" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 500000" />
+      </label>
+      <label>สี
+        <div class="color-row" id="colorRow"></div>
+        <input type="hidden" name="color" />
+      </label>
+      <div class="actions">
+        <button type="button" class="btn danger" id="goalDeleteBtn" hidden>ลบ</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ฟอร์มรายการ -->
+  <dialog id="entryDialog">
+    <form id="entryForm" method="dialog">
+      <h2 id="entryDialogTitle">บันทึกรายการ</h2>
+      <div class="segmented">
+        <label><input type="radio" name="type" value="in" checked /><span>ฝากเข้า</span></label>
+        <label><input type="radio" name="type" value="out" /><span>ถอนออก</span></label>
+      </div>
+      <label>เป้าหมาย
+        <select name="goalId" required></select>
+      </label>
+      <label>จำนวนเงิน (บาท)
+        <input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="0.00" />
+      </label>
+      <label>วันที่
+        <input name="date" type="date" required />
+      </label>
+      <label>โน้ต
+        <textarea name="note" rows="2" maxlength="300" placeholder="เช่น โบนัสสิ้นปี"></textarea>
+      </label>
+      <div class="actions">
+        <button type="button" class="btn danger" id="entryDeleteBtn" hidden>ลบ</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- เมนู -->
+  <dialog id="menuDialog">
+    <div class="menu">
+      <h2>ข้อมูล</h2>
+      <p class="muted">ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น ควร Export สำรองเป็นระยะ</p>
+      <button class="btn block" id="exportBtn">⬇️ Export สำรองข้อมูล (.json)</button>
+      <button class="btn block" id="importBtn">⬆️ Import จากไฟล์สำรอง</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+      <button class="btn block danger" id="resetBtn">🗑️ ลบข้อมูลทั้งหมด</button>
+      <div class="actions"><span class="spacer"></span><button class="btn ghost" data-close>ปิด</button></div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

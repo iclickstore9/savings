@@ -1,0 +1,402 @@
+'use strict';
+
+/* ================= ข้อมูล ================= */
+const STORAGE_KEY = 'kapook-om-v1';
+const EMOJIS = ['🏠', '🛡️', '🚗', '✈️', '🎓', '💍', '👶', '🏥', '📱', '💰', '🐷', '🎯'];
+const COLORS = ['#0f766e', '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#16a34a'];
+
+function emptyState() {
+  return { version: 1, goals: [], entries: [] };
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyState();
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.goals) || !Array.isArray(data.entries)) return emptyState();
+    return data;
+  } catch {
+    return emptyState();
+  }
+}
+
+let state = load();
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/* ================= ตัวช่วย ================= */
+const $ = (sel) => document.querySelector(sel);
+const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmt = (n) => '฿' + money.format(n);
+const fmtDate = (iso) =>
+  new Date(iso + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+const fmtMonth = (ym) =>
+  new Date(ym + '-01T00:00:00').toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const esc = (s) =>
+  String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => (t.hidden = true), 2200);
+}
+
+const signed = (e) => (e.type === 'in' ? e.amount : -e.amount);
+const goalById = (id) => state.goals.find((g) => g.id === id);
+const entriesOf = (goalId) => state.entries.filter((e) => e.goalId === goalId);
+const balanceOf = (goalId) => entriesOf(goalId).reduce((s, e) => s + signed(e), 0);
+const sortEntries = (list) =>
+  [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+
+/* ================= หน้าจอ ================= */
+function route() {
+  const m = location.hash.match(/^#\/goal\/(.+)$/);
+  if (m && goalById(m[1])) return { view: 'goal', id: m[1] };
+  return { view: 'home' };
+}
+
+function render() {
+  const r = route();
+  const app = $('#app');
+  if (r.view === 'goal') {
+    const g = goalById(r.id);
+    $('#title').textContent = g.name;
+    $('#backBtn').hidden = false;
+    app.innerHTML = renderGoal(g);
+  } else {
+    $('#title').textContent = 'กระปุกออม';
+    $('#backBtn').hidden = true;
+    app.innerHTML = renderHome();
+  }
+  window.scrollTo(0, 0);
+}
+
+function progressBar(g, bal) {
+  if (!g.target) return '';
+  const pct = Math.max(0, Math.min(100, (bal / g.target) * 100));
+  return `<div class="progress"><div style="width:${pct}%;background:${g.color}"></div></div>`;
+}
+
+function goalSub(g, bal) {
+  if (!g.target) return `${entriesOf(g.id).length} รายการ`;
+  const pct = Math.floor((bal / g.target) * 100);
+  return `เป้า ${fmt(g.target)} · ${pct}%`;
+}
+
+function renderHome() {
+  if (state.goals.length === 0) {
+    return `
+      <div class="empty">
+        <div class="big-emoji">🐷</div>
+        <p>ยังไม่มีเป้าหมายการออม</p>
+        <button class="btn primary" data-action="new-goal">＋ สร้างเป้าหมายแรก</button>
+      </div>`;
+  }
+  const total = state.entries.reduce((s, e) => s + signed(e), 0);
+  const goals = state.goals
+    .map((g) => {
+      const bal = balanceOf(g.id);
+      return `
+      <button class="card goal-card" data-goal="${g.id}">
+        <div class="goal-head">
+          <div class="goal-emoji" style="background:${g.color}22">${esc(g.emoji)}</div>
+          <div>
+            <div class="goal-name">${esc(g.name)}</div>
+            <div class="goal-sub">${goalSub(g, bal)}</div>
+          </div>
+          <div class="goal-amount">${fmt(bal)}</div>
+        </div>
+        ${progressBar(g, bal)}
+      </button>`;
+    })
+    .join('');
+
+  const recent = sortEntries(state.entries).slice(0, 5);
+  return `
+    <section class="summary">
+      <div class="label">เงินออมทั้งหมด</div>
+      <div class="big">${fmt(total)}</div>
+    </section>
+
+    <div class="section-title">
+      <h2>เป้าหมาย</h2>
+      <button class="link-btn" data-action="new-goal">＋ เพิ่ม</button>
+    </div>
+    ${goals}
+
+    ${recent.length ? `
+    <div class="section-title"><h2>ล่าสุด</h2></div>
+    <div class="card entry-list">${recent.map((e) => entryRow(e, true)).join('')}</div>` : ''}
+  `;
+}
+
+function entryRow(e, showGoal) {
+  const g = goalById(e.goalId);
+  const label = e.note || (e.type === 'in' ? 'ฝากเข้า' : 'ถอนออก');
+  return `
+    <div class="entry" data-entry="${e.id}">
+      ${showGoal ? `<div class="goal-emoji" style="background:${g.color}22;width:36px;height:36px;font-size:1.1rem">${esc(g.emoji)}</div>` : ''}
+      <div class="meta">
+        <div class="note">${esc(label)}</div>
+        <div class="date">${fmtDate(e.date)}${showGoal ? ' · ' + esc(g.name) : ''}</div>
+      </div>
+      <div class="amt ${e.type}">${e.type === 'in' ? '+' : '−'}${fmt(e.amount)}</div>
+    </div>`;
+}
+
+function renderGoal(g) {
+  const list = sortEntries(entriesOf(g.id));
+  const bal = balanceOf(g.id);
+  const totalIn = list.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+  const totalOut = list.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+
+  // จัดกลุ่มตามเดือน
+  const groups = {};
+  for (const e of list) (groups[e.date.slice(0, 7)] ||= []).push(e);
+  const history = Object.entries(groups)
+    .map(([ym, items]) => {
+      const sum = items.reduce((s, e) => s + signed(e), 0);
+      return `
+        <div class="month-head"><span>${fmtMonth(ym)}</span><span>${sum >= 0 ? '+' : '−'}${fmt(Math.abs(sum))}</span></div>
+        <div class="card entry-list">${items.map((e) => entryRow(e, false)).join('')}</div>`;
+    })
+    .join('');
+
+  const remain = g.target ? Math.max(0, g.target - bal) : 0;
+  return `
+    <section class="card goal-detail-head">
+      <div class="goal-emoji" style="background:${g.color}22">${esc(g.emoji)}</div>
+      <div class="big" style="color:${g.color}">${fmt(bal)}</div>
+      ${g.target ? `<div class="muted">จากเป้า ${fmt(g.target)} (${Math.floor((bal / g.target) * 100)}%)</div>` : ''}
+      ${progressBar(g, bal)}
+      <div class="stats">
+        <div class="stat"><div class="k">ฝากรวม</div><div class="v amt in">${fmt(totalIn)}</div></div>
+        <div class="stat"><div class="k">ถอนรวม</div><div class="v amt out">${fmt(totalOut)}</div></div>
+        ${g.target ? `<div class="stat" style="grid-column:span 2"><div class="k">ขาดอีก</div><div class="v">${remain ? fmt(remain) : 'ถึงเป้าแล้ว 🎉'}</div></div>` : ''}
+      </div>
+    </section>
+
+    <div class="section-title">
+      <h2>ประวัติ</h2>
+      <button class="link-btn" data-action="edit-goal" data-id="${g.id}">แก้ไขเป้าหมาย</button>
+    </div>
+    ${history || `<div class="empty"><p>ยังไม่มีรายการ<br/>กดปุ่ม ＋ ด้านล่างเพื่อบันทึก</p></div>`}
+  `;
+}
+
+/* ================= ฟอร์มเป้าหมาย ================= */
+const goalDialog = $('#goalDialog');
+const goalForm = $('#goalForm');
+let editingGoalId = null;
+
+function pickerRow(container, items, input, isColor) {
+  container.innerHTML = items
+    .map((v) => `<button type="button" data-v="${v}" ${isColor ? `style="background:${v}"` : ''}>${isColor ? '' : v}</button>`)
+    .join('');
+  const select = (v) => {
+    input.value = v;
+    container.querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.v === v));
+  };
+  container.onclick = (ev) => {
+    const b = ev.target.closest('button');
+    if (b) select(b.dataset.v);
+  };
+  return select;
+}
+const selectEmoji = pickerRow($('#emojiRow'), EMOJIS, goalForm.emoji, false);
+const selectColor = pickerRow($('#colorRow'), COLORS, goalForm.color, true);
+
+function openGoalForm(id) {
+  editingGoalId = id || null;
+  const g = id ? goalById(id) : null;
+  $('#goalDialogTitle').textContent = g ? 'แก้ไขเป้าหมาย' : 'เป้าหมายใหม่';
+  goalForm.name.value = g?.name || '';
+  goalForm.target.value = g?.target || '';
+  selectEmoji(g?.emoji || EMOJIS[state.goals.length % EMOJIS.length]);
+  selectColor(g?.color || COLORS[state.goals.length % COLORS.length]);
+  $('#goalDeleteBtn').hidden = !g;
+  goalDialog.showModal();
+}
+
+goalForm.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const data = {
+    name: goalForm.name.value.trim(),
+    emoji: goalForm.emoji.value,
+    color: goalForm.color.value,
+    target: parseFloat(goalForm.target.value) || 0,
+  };
+  if (!data.name) return;
+  if (editingGoalId) {
+    Object.assign(goalById(editingGoalId), data);
+    toast('บันทึกแล้ว');
+  } else {
+    state.goals.push({ id: uid(), createdAt: Date.now(), ...data });
+    toast('สร้างเป้าหมายแล้ว');
+  }
+  save();
+  goalDialog.close();
+  render();
+});
+
+$('#goalDeleteBtn').addEventListener('click', () => {
+  const g = goalById(editingGoalId);
+  const n = entriesOf(g.id).length;
+  if (!confirm(`ลบ "${g.name}" และรายการทั้งหมด ${n} รายการ?`)) return;
+  state.goals = state.goals.filter((x) => x.id !== g.id);
+  state.entries = state.entries.filter((e) => e.goalId !== g.id);
+  save();
+  goalDialog.close();
+  location.hash = '#/';
+  render();
+  toast('ลบแล้ว');
+});
+
+/* ================= ฟอร์มรายการ ================= */
+const entryDialog = $('#entryDialog');
+const entryForm = $('#entryForm');
+let editingEntryId = null;
+
+function openEntryForm({ goalId, entryId } = {}) {
+  if (state.goals.length === 0) return openGoalForm();
+  editingEntryId = entryId || null;
+  const e = entryId ? state.entries.find((x) => x.id === entryId) : null;
+  entryForm.goalId.innerHTML = state.goals
+    .map((g) => `<option value="${g.id}">${esc(g.emoji)} ${esc(g.name)}</option>`)
+    .join('');
+  entryForm.goalId.value = e?.goalId || goalId || state.goals[0].id;
+  entryForm.type.value = e?.type || 'in';
+  entryForm.amount.value = e?.amount ?? '';
+  entryForm.date.value = e?.date || today();
+  entryForm.note.value = e?.note || '';
+  $('#entryDialogTitle').textContent = e ? 'แก้ไขรายการ' : 'บันทึกรายการ';
+  $('#entryDeleteBtn').hidden = !e;
+  entryDialog.showModal();
+  if (!e) setTimeout(() => entryForm.amount.focus(), 250);
+}
+
+entryForm.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const amount = Math.round(parseFloat(entryForm.amount.value) * 100) / 100;
+  if (!(amount > 0)) return;
+  const data = {
+    goalId: entryForm.goalId.value,
+    type: entryForm.type.value,
+    amount,
+    date: entryForm.date.value || today(),
+    note: entryForm.note.value.trim(),
+  };
+  if (editingEntryId) {
+    Object.assign(state.entries.find((x) => x.id === editingEntryId), data);
+  } else {
+    state.entries.push({ id: uid(), createdAt: Date.now(), ...data });
+  }
+  save();
+  entryDialog.close();
+  render();
+  toast(data.type === 'in' ? `ฝาก ${fmt(amount)} แล้ว` : `ถอน ${fmt(amount)} แล้ว`);
+});
+
+$('#entryDeleteBtn').addEventListener('click', () => {
+  if (!confirm('ลบรายการนี้?')) return;
+  state.entries = state.entries.filter((x) => x.id !== editingEntryId);
+  save();
+  entryDialog.close();
+  render();
+  toast('ลบแล้ว');
+});
+
+/* ================= เมนู / สำรองข้อมูล ================= */
+const menuDialog = $('#menuDialog');
+
+$('#exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `kapook-om-backup-${today()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Export แล้ว');
+});
+
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data.goals) || !Array.isArray(data.entries)) throw new Error('bad');
+    if (!confirm(`นำเข้า ${data.goals.length} เป้าหมาย, ${data.entries.length} รายการ?\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+    state = data;
+    save();
+    menuDialog.close();
+    location.hash = '#/';
+    render();
+    toast('Import แล้ว');
+  } catch {
+    alert('ไฟล์ไม่ถูกต้อง');
+  }
+});
+
+$('#resetBtn').addEventListener('click', () => {
+  if (!confirm('ลบข้อมูลทั้งหมด? (ควร Export สำรองก่อน)')) return;
+  if (!confirm('ยืนยันอีกครั้ง: ลบทั้งหมดจริงหรือไม่?')) return;
+  state = emptyState();
+  save();
+  menuDialog.close();
+  location.hash = '#/';
+  render();
+});
+
+/* ================= event รวม ================= */
+$('#app').addEventListener('click', (ev) => {
+  const goalBtn = ev.target.closest('[data-goal]');
+  if (goalBtn) return void (location.hash = `#/goal/${goalBtn.dataset.goal}`);
+  const entry = ev.target.closest('[data-entry]');
+  if (entry) return openEntryForm({ entryId: entry.dataset.entry });
+  const act = ev.target.closest('[data-action]');
+  if (act?.dataset.action === 'new-goal') return openGoalForm();
+  if (act?.dataset.action === 'edit-goal') return openGoalForm(act.dataset.id);
+});
+
+$('#fab').addEventListener('click', () => {
+  const r = route();
+  openEntryForm({ goalId: r.view === 'goal' ? r.id : undefined });
+});
+$('#backBtn').addEventListener('click', () => {
+  if (history.length > 1) history.back();
+  else location.hash = '#/';
+});
+$('#menuBtn').addEventListener('click', () => menuDialog.showModal());
+
+// ปุ่มปิด + แตะพื้นหลังเพื่อปิด
+document.querySelectorAll('dialog').forEach((d) => {
+  d.addEventListener('click', (ev) => {
+    if (ev.target === d || ev.target.closest('[data-close]')) d.close();
+  });
+});
+
+window.addEventListener('hashchange', render);
+render();
+
+// ขอให้เบราว์เซอร์ไม่ลบข้อมูลอัตโนมัติ
+navigator.storage?.persist?.();
+
+// PWA: ใช้งานออฟไลน์
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+}
