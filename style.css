@@ -150,6 +150,10 @@ dialog {
   max-height: 92dvh; overflow-y: auto; overflow-x: hidden;
 }
 dialog[open] { animation: sheet-up .25s cubic-bezier(.2, .8, .2, 1); }
+dialog { overscroll-behavior: contain; }
+/* ระหว่างเปิด popup: ปิด pull-to-refresh และล็อกหน้าหลัก */
+html.modal-open, html.modal-open body,
+html:has(dialog[open]), html:has(dialog[open]) body { overflow: hidden; overscroll-behavior: none; }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
 dialog form, dialog .menu {

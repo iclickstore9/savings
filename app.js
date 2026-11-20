@@ -416,7 +416,53 @@ document.querySelectorAll('dialog').forEach((d) => {
   d.addEventListener('click', (ev) => {
     if (ev.target === d || ev.target.closest('[data-close]')) d.close();
   });
+  enableSwipeToClose(d);
+  // ล็อกหน้าหลักไม่ให้เลื่อน/ดึงรีเฟรชระหว่างเปิด popup
+  new MutationObserver(() => {
+    const anyOpen = !!document.querySelector('dialog[open]');
+    document.documentElement.classList.toggle('modal-open', anyOpen);
+    if (!d.open) d.style.transform = d.style.transition = '';
+  }).observe(d, { attributes: true, attributeFilter: ['open'] });
 });
+
+// ลาก popup ลงเพื่อปิด (และกันเบราว์เซอร์มือถือดึงรีเฟรช)
+function enableSwipeToClose(d) {
+  let startY = 0, dy = 0, tracking = false, dragging = false;
+  d.addEventListener('touchstart', (ev) => {
+    if (ev.touches.length !== 1) return;
+    tracking = d.scrollTop <= 0; // ลากปิดได้เมื่ออยู่บนสุดของ popup
+    dragging = false;
+    startY = ev.touches[0].clientY;
+    dy = 0;
+  }, { passive: true });
+
+  d.addEventListener('touchmove', (ev) => {
+    if (!tracking) return;
+    dy = ev.touches[0].clientY - startY;
+    if (dy <= 0 && !dragging) { tracking = false; return; } // เลื่อนขึ้น = scroll ปกติ
+    if (dy > 6) dragging = true;
+    if (dragging) {
+      ev.preventDefault(); // หยุด pull-to-refresh / scroll ของเบราว์เซอร์
+      d.style.transition = 'none';
+      d.style.transform = `translateY(${Math.max(0, dy)}px)`;
+    }
+  }, { passive: false });
+
+  const end = () => {
+    if (!dragging) return;
+    dragging = tracking = false;
+    if (dy > Math.min(140, d.offsetHeight * 0.25)) {
+      d.style.transition = 'transform .18s ease-in';
+      d.style.transform = 'translateY(100%)';
+      setTimeout(() => d.close(), 170);
+    } else {
+      d.style.transition = 'transform .2s ease-out';
+      d.style.transform = '';
+    }
+  };
+  d.addEventListener('touchend', end);
+  d.addEventListener('touchcancel', end);
+}
 
 document.querySelectorAll('[data-ico]').forEach((el) => (el.outerHTML = ico(el.dataset.ico)));
 window.addEventListener('hashchange', render);

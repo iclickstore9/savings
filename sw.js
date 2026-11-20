@@ -1,5 +1,5 @@
 // แคชไฟล์ไว้ให้เปิดได้ตอนออฟไลน์ (ข้อมูลเงินออมอยู่ใน localStorage ไม่เกี่ยวกับไฟล์นี้)
-const CACHE = 'kapook-om-v4';
+const CACHE = 'kapook-om-v5';
 const FILES = [
   "./", "index.html", "style.css", "fonts.css", "icons.js", "plan.js", "app.js", "manifest.webmanifest",
   "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
