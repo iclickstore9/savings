@@ -7,12 +7,12 @@
 - สร้างเป้าหมายได้หลายอัน พร้อมไอคอน สี และยอดเป้าหมาย
 - บันทึกฝาก/ถอนทีละรายการ พร้อมวันที่และโน้ต (แตะรายการเพื่อแก้ไข/ลบ)
 - ดูยอดรวม, % ความคืบหน้า, ประวัติแยกรายเดือน
-- Export / Import ไฟล์สำรอง (.json) — เมนู ⋯ มุมขวาบน
+- Export / Import ไฟล์สำรอง (.json) — เมนู ⋮ มุมขวาบน
 
 ## เอาขึ้น GitHub Pages (ฟรี)
 1. สร้าง repo ใหม่ที่ https://github.com/new (เช่นชื่อ `savings`)
    - GitHub Pages แบบฟรีต้องเป็น **Public** repo — ไม่เป็นไร เพราะในโค้ดไม่มีข้อมูลเงินของคุณ
-2. อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้ (กด *Add file → Upload files* แล้วลากไฟล์ + โฟลเดอร์ `icons` ไปวาง)
+2. อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้ (กด *Add file → Upload files* แล้วลากไฟล์ + โฟลเดอร์ `icons` และ `fonts` ไปวาง)
 3. ไปที่ **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main` / `(root)` → Save
 4. รอ 1–2 นาที จะได้ลิงก์ `https://<ชื่อผู้ใช้>.github.io/savings/`
 
@@ -25,3 +25,7 @@
 ## อัปเดตเวอร์ชัน
 เมื่อแก้ไฟล์แล้วอัปโหลดใหม่ ให้เปลี่ยนเลข `CACHE` ใน `sw.js` (เช่น `kapook-om-v2`)
 เพื่อให้มือถือโหลดไฟล์ใหม่ (อาจต้องเปิดแอป 2 ครั้ง)
+
+## เครดิต
+- ฟอนต์ [Prompt](https://fonts.google.com/specimen/Prompt) — SIL Open Font License
+- ไอคอน [Lucide](https://lucide.dev) — ISC License

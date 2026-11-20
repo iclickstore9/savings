@@ -11,19 +11,21 @@
   <meta name="apple-mobile-web-app-title" content="กระปุกออม" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="preload" href="fonts/prompt-thai-400.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="fonts.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <button id="backBtn" class="icon-btn" aria-label="ย้อนกลับ" hidden>‹</button>
+    <button id="backBtn" class="icon-btn" aria-label="ย้อนกลับ" hidden><span data-ico="chevron-left"></span></button>
     <h1 id="title">กระปุกออม</h1>
-    <button id="menuBtn" class="icon-btn" aria-label="เมนู">⋯</button>
+    <button id="menuBtn" class="icon-btn" aria-label="เมนู"><span data-ico="ellipsis-vertical"></span></button>
   </header>
 
   <main id="app"></main>
 
-  <button id="fab" class="fab" aria-label="เพิ่ม">＋</button>
+  <button id="fab" class="fab" aria-label="เพิ่ม"><span data-ico="plus"></span></button>
 
   <!-- ฟอร์มเป้าหมาย -->
   <dialog id="goalDialog">
@@ -34,7 +36,7 @@
       </label>
       <label>ไอคอน
         <div class="emoji-row" id="emojiRow"></div>
-        <input type="hidden" name="emoji" />
+        <input type="hidden" name="icon" />
       </label>
       <label>เป้าหมาย (บาท) <small>ไม่ใส่ก็ได้</small>
         <input name="target" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 500000" />
@@ -86,16 +88,17 @@
     <div class="menu">
       <h2>ข้อมูล</h2>
       <p class="muted">ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น ควร Export สำรองเป็นระยะ</p>
-      <button class="btn block" id="exportBtn">⬇️ Export สำรองข้อมูล (.json)</button>
-      <button class="btn block" id="importBtn">⬆️ Import จากไฟล์สำรอง</button>
+      <button class="btn block" id="exportBtn"><span data-ico="download"></span> Export สำรองข้อมูล (.json)</button>
+      <button class="btn block" id="importBtn"><span data-ico="upload"></span> Import จากไฟล์สำรอง</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden />
-      <button class="btn block danger" id="resetBtn">🗑️ ลบข้อมูลทั้งหมด</button>
+      <button class="btn block danger" id="resetBtn"><span data-ico="trash-2"></span> ลบข้อมูลทั้งหมด</button>
       <div class="actions"><span class="spacer"></span><button class="btn ghost" data-close>ปิด</button></div>
     </div>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>
 
+  <script src="icons.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -2,8 +2,23 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1';
-const EMOJIS = ['🏠', '🛡️', '🚗', '✈️', '🎓', '💍', '👶', '🏥', '📱', '💰', '🐷', '🎯'];
+const GOAL_ICONS = [
+  'house', 'shield-check', 'car', 'plane', 'graduation-cap',
+  'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
+  'briefcase', 'piggy-bank', 'target', 'wallet', 'coins',
+];
+// แปลงข้อมูลเวอร์ชันแรกที่ใช้อีโมจิ
+const EMOJI_TO_ICON = {
+  '🏠': 'house', '🛡️': 'shield-check', '🚗': 'car', '✈️': 'plane', '🎓': 'graduation-cap', '💍': 'gem',
+  '👶': 'baby', '🏥': 'heart-pulse', '📱': 'smartphone', '💰': 'coins', '🐷': 'piggy-bank', '🎯': 'target',
+};
 const COLORS = ['#0f766e', '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#16a34a'];
+
+const ico = (name, cls = '') =>
+  `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS['piggy-bank']}</svg>`;
+const goalIcon = (g) => (ICONS[g.icon] ? g.icon : EMOJI_TO_ICON[g.emoji] || 'piggy-bank');
+const goalBadge = (g, cls = '') =>
+  `<div class="goal-emoji ${cls}" style="background:${g.color}1f;color:${g.color}">${ico(goalIcon(g))}</div>`;
 
 function emptyState() {
   return { version: 1, goals: [], entries: [] };
@@ -98,9 +113,9 @@ function renderHome() {
   if (state.goals.length === 0) {
     return `
       <div class="empty">
-        <div class="big-emoji">🐷</div>
+        <div class="empty-ico">${ico('piggy-bank')}</div>
         <p>ยังไม่มีเป้าหมายการออม</p>
-        <button class="btn primary" data-action="new-goal">＋ สร้างเป้าหมายแรก</button>
+        <button class="btn primary" data-action="new-goal">${ico('plus')} สร้างเป้าหมายแรก</button>
       </div>`;
   }
   const total = state.entries.reduce((s, e) => s + signed(e), 0);
@@ -110,7 +125,7 @@ function renderHome() {
       return `
       <button class="card goal-card" data-goal="${g.id}">
         <div class="goal-head">
-          <div class="goal-emoji" style="background:${g.color}22">${esc(g.emoji)}</div>
+          ${goalBadge(g)}
           <div>
             <div class="goal-name">${esc(g.name)}</div>
             <div class="goal-sub">${goalSub(g, bal)}</div>
@@ -123,15 +138,18 @@ function renderHome() {
     .join('');
 
   const recent = sortEntries(state.entries).slice(0, 5);
+  const ym = today().slice(0, 7);
+  const thisMonth = state.entries.filter((e) => e.date.startsWith(ym)).reduce((s, e) => s + signed(e), 0);
   return `
     <section class="summary">
       <div class="label">เงินออมทั้งหมด</div>
       <div class="big">${fmt(total)}</div>
+      <div class="sub">เดือนนี้ ${thisMonth >= 0 ? '+' : '−'}${fmt(Math.abs(thisMonth))} · ${state.goals.length} เป้าหมาย</div>
     </section>
 
     <div class="section-title">
       <h2>เป้าหมาย</h2>
-      <button class="link-btn" data-action="new-goal">＋ เพิ่ม</button>
+      <button class="link-btn" data-action="new-goal">${ico('plus')} เพิ่ม</button>
     </div>
     ${goals}
 
@@ -146,7 +164,7 @@ function entryRow(e, showGoal) {
   const label = e.note || (e.type === 'in' ? 'ฝากเข้า' : 'ถอนออก');
   return `
     <div class="entry" data-entry="${e.id}">
-      ${showGoal ? `<div class="goal-emoji" style="background:${g.color}22;width:36px;height:36px;font-size:1.1rem">${esc(g.emoji)}</div>` : ''}
+      ${showGoal ? goalBadge(g, 'sm') : `<div class="goal-emoji sm dir ${e.type}">${ico(e.type === 'in' ? 'arrow-down-left' : 'arrow-up-right')}</div>`}
       <div class="meta">
         <div class="note">${esc(label)}</div>
         <div class="date">${fmtDate(e.date)}${showGoal ? ' · ' + esc(g.name) : ''}</div>
@@ -176,7 +194,7 @@ function renderGoal(g) {
   const remain = g.target ? Math.max(0, g.target - bal) : 0;
   return `
     <section class="card goal-detail-head">
-      <div class="goal-emoji" style="background:${g.color}22">${esc(g.emoji)}</div>
+      ${goalBadge(g, 'lg')}
       <div class="big" style="color:${g.color}">${fmt(bal)}</div>
       ${g.target ? `<div class="muted">จากเป้า ${fmt(g.target)} (${Math.floor((bal / g.target) * 100)}%)</div>` : ''}
       ${progressBar(g, bal)}
@@ -191,7 +209,7 @@ function renderGoal(g) {
       <h2>ประวัติ</h2>
       <button class="link-btn" data-action="edit-goal" data-id="${g.id}">แก้ไขเป้าหมาย</button>
     </div>
-    ${history || `<div class="empty"><p>ยังไม่มีรายการ<br/>กดปุ่ม ＋ ด้านล่างเพื่อบันทึก</p></div>`}
+    ${history || `<div class="empty"><p>ยังไม่มีรายการ<br/>กดปุ่ม + ด้านล่างเพื่อบันทึก</p></div>`}
   `;
 }
 
@@ -202,7 +220,7 @@ let editingGoalId = null;
 
 function pickerRow(container, items, input, isColor) {
   container.innerHTML = items
-    .map((v) => `<button type="button" data-v="${v}" ${isColor ? `style="background:${v}"` : ''}>${isColor ? '' : v}</button>`)
+    .map((v) => `<button type="button" data-v="${v}" ${isColor ? `style="background:${v}"` : ''}>${isColor ? '' : ico(v)}</button>`)
     .join('');
   const select = (v) => {
     input.value = v;
@@ -214,7 +232,7 @@ function pickerRow(container, items, input, isColor) {
   };
   return select;
 }
-const selectEmoji = pickerRow($('#emojiRow'), EMOJIS, goalForm.emoji, false);
+const selectIcon = pickerRow($('#emojiRow'), GOAL_ICONS, goalForm.icon, false);
 const selectColor = pickerRow($('#colorRow'), COLORS, goalForm.color, true);
 
 function openGoalForm(id) {
@@ -223,7 +241,7 @@ function openGoalForm(id) {
   $('#goalDialogTitle').textContent = g ? 'แก้ไขเป้าหมาย' : 'เป้าหมายใหม่';
   goalForm.name.value = g?.name || '';
   goalForm.target.value = g?.target || '';
-  selectEmoji(g?.emoji || EMOJIS[state.goals.length % EMOJIS.length]);
+  selectIcon(g ? goalIcon(g) : GOAL_ICONS[state.goals.length % GOAL_ICONS.length]);
   selectColor(g?.color || COLORS[state.goals.length % COLORS.length]);
   $('#goalDeleteBtn').hidden = !g;
   goalDialog.showModal();
@@ -233,7 +251,7 @@ goalForm.addEventListener('submit', (ev) => {
   ev.preventDefault();
   const data = {
     name: goalForm.name.value.trim(),
-    emoji: goalForm.emoji.value,
+    icon: goalForm.icon.value,
     color: goalForm.color.value,
     target: parseFloat(goalForm.target.value) || 0,
   };
@@ -273,7 +291,7 @@ function openEntryForm({ goalId, entryId } = {}) {
   editingEntryId = entryId || null;
   const e = entryId ? state.entries.find((x) => x.id === entryId) : null;
   entryForm.goalId.innerHTML = state.goals
-    .map((g) => `<option value="${g.id}">${esc(g.emoji)} ${esc(g.name)}</option>`)
+    .map((g) => `<option value="${g.id}">${esc(g.name)}</option>`)
     .join('');
   entryForm.goalId.value = e?.goalId || goalId || state.goals[0].id;
   entryForm.type.value = e?.type || 'in';
@@ -390,6 +408,7 @@ document.querySelectorAll('dialog').forEach((d) => {
   });
 });
 
+document.querySelectorAll('[data-ico]').forEach((el) => (el.outerHTML = ico(el.dataset.ico)));
 window.addEventListener('hashchange', render);
 render();
 
