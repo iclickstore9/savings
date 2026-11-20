@@ -205,6 +205,15 @@ function renderGoal(g) {
       </div>
     </section>
 
+    <button class="card plan-card" data-action="plan" data-id="${g.id}">
+      <div class="plan-ico">${ico("calculator")}</div>
+      <div class="plan-text">
+        <div class="plan-title">คาดการณ์</div>
+        <div class="plan-sub">${esc(planSummary(g)) || "ฝากเดือนละเท่าไร ถึงเป้าเมื่อไร"}</div>
+      </div>
+      ${ico("chevron-left", "flip")}
+    </button>
+
     <div class="section-title">
       <h2>ประวัติ</h2>
       <button class="link-btn" data-action="edit-goal" data-id="${g.id}">แก้ไขเป้าหมาย</button>
@@ -389,6 +398,7 @@ $('#app').addEventListener('click', (ev) => {
   const act = ev.target.closest('[data-action]');
   if (act?.dataset.action === 'new-goal') return openGoalForm();
   if (act?.dataset.action === 'edit-goal') return openGoalForm(act.dataset.id);
+  if (act?.dataset.action === 'plan') return openPlan(act.dataset.id);
 });
 
 $('#fab').addEventListener('click', () => {
