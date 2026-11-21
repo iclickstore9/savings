@@ -8,6 +8,7 @@
 - บันทึกฝาก/ถอนทีละรายการ พร้อมวันที่และโน้ต (แตะรายการเพื่อแก้ไข/ลบ)
 - ดูยอดรวม, % ความคืบหน้า, ประวัติแยกรายเดือน
 - **คาดการณ์** (ในหน้าเป้าหมาย): ฝากเท่านี้ถึงเป้าเมื่อไร / ต้องฝากเดือนละเท่าไร — รองรับยอดฝากแบบขั้นบันได, เงินก้อนรายปี (โบนัส) และดอกเบี้ย — จำค่าที่กรอกไว้ให้
+- **ซิงก์ Firebase** (ไม่บังคับ): ล็อกอิน Google แล้วข้อมูลซิงก์ระหว่างเครื่องแบบ real-time ใช้ออฟไลน์ได้
 - Export / Import ไฟล์สำรอง (.json) — เมนู ⋮ มุมขวาบน
 
 ## เอาขึ้น GitHub Pages (ฟรี)
@@ -26,6 +27,15 @@
 ## อัปเดตเวอร์ชัน
 เมื่อแก้ไฟล์แล้วอัปโหลดใหม่ ให้เปลี่ยนเลข `CACHE` ใน `sw.js` (เช่น `kapook-om-v2`)
 เพื่อให้มือถือโหลดไฟล์ใหม่ (อาจต้องเปิดแอป 2 ครั้ง)
+
+## ตั้งค่าซิงก์ Firebase (ไม่บังคับ)
+1. Firebase console → เลือกโปรเจกต์ → ⚙️ Project settings → Your apps → เพิ่ม Web app (`</>`) → คัดลอก `firebaseConfig` ใส่ใน `firebase-config.js`
+2. **Authentication** → Sign-in method → เปิด **Google**
+3. **Authentication** → Settings → Authorized domains → เพิ่ม `<ชื่อผู้ใช้>.github.io`
+4. **Firestore Database** → Create database (Production mode, region `asia-southeast1`)
+5. Firestore → **Rules** → วางเนื้อหาจากไฟล์ `firestore.rules` → Publish
+
+ข้อมูลเก็บที่ `users/{uid}/goals` และ `users/{uid}/entries` — ถ้า `firebase-config.js` ว่าง แอปจะใช้แบบเก็บในเครื่องอย่างเดียว
 
 ## เครดิต
 - ฟอนต์ [Prompt](https://fonts.google.com/specimen/Prompt) — SIL Open Font License

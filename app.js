@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '6';
+const APP_VERSION = '7';
 const GOAL_ICONS = [
   'house', 'shield-check', 'car', 'plane', 'graduation-cap',
   'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
@@ -39,9 +39,35 @@ function load() {
 
 let state = load();
 
-function save() {
+function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
+
+function save() {
+  persist();
+  window.cloudSync?.push(); // ส่งขึ้น Firebase ถ้าล็อกอินอยู่ (cloud.js)
+}
+
+// ช่องทางให้ cloud.js อ่าน/เขียนข้อมูล
+window.appBridge = {
+  getState: () => state,
+  // รับข้อมูลจากคลาวด์ (เฉพาะส่วนที่ส่งมา) แล้ววาดหน้าจอใหม่ถ้ามีอะไรเปลี่ยน
+  setData(part) {
+    let changed = false;
+    for (const k of ['goals', 'entries']) {
+      if (part[k] && JSON.stringify(part[k]) !== JSON.stringify(state[k])) {
+        state[k] = part[k];
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    persist();
+    render({ keepScroll: true });
+  },
+  persist: () => persist(),
+  ico: (...a) => ico(...a),
+  toast: (m) => toast(m),
+};
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
@@ -82,7 +108,8 @@ function route() {
   return { view: 'home' };
 }
 
-function render() {
+function render(opts) {
+  const keepScroll = opts?.keepScroll === true;
   const r = route();
   const app = $('#app');
   if (r.view === 'goal') {
@@ -95,7 +122,7 @@ function render() {
     $('#backBtn').hidden = true;
     app.innerHTML = renderHome();
   }
-  window.scrollTo(0, 0);
+  if (!keepScroll) window.scrollTo(0, 0);
 }
 
 function progressBar(g, bal) {
@@ -411,6 +438,7 @@ $('#backBtn').addEventListener('click', () => {
   else location.hash = '#/';
 });
 $('#menuBtn').addEventListener('click', () => menuDialog.showModal());
+$('#syncBadge').addEventListener('click', () => menuDialog.showModal());
 
 // ปุ่มปิด + แตะพื้นหลังเพื่อปิด
 document.querySelectorAll('dialog').forEach((d) => {

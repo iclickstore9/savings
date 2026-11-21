@@ -401,4 +401,4 @@ planBody.addEventListener('click', (ev) => {
   }
 });
 
-planDialog.addEventListener('close', () => render());
+planDialog.addEventListener('close', () => render({ keepScroll: true }));

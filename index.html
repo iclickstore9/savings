@@ -20,6 +20,7 @@
   <header class="topbar">
     <button id="backBtn" class="icon-btn" aria-label="ย้อนกลับ" hidden><span data-ico="chevron-left"></span></button>
     <h1 id="title">กระปุกออม</h1>
+    <button id="syncBadge" class="icon-btn sync-badge" hidden></button>
     <button id="menuBtn" class="icon-btn" aria-label="เมนู"><span data-ico="ellipsis-vertical"></span></button>
   </header>
 
@@ -87,7 +88,19 @@
   <dialog id="menuDialog">
     <div class="menu">
       <h2>ข้อมูล</h2>
-      <p class="muted">ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น ควร Export สำรองเป็นระยะ</p>
+
+      <div id="syncSection" class="sync-box" hidden>
+        <div class="sync-head">
+          <span data-ico="cloud"></span>
+          <b>ซิงก์ข้อมูล</b>
+          <span id="syncStatus" class="sync-status"></span>
+        </div>
+        <p id="syncInfo" class="muted small"></p>
+        <button class="btn block primary-soft" id="loginBtn" hidden><span data-ico="log-in"></span> เข้าสู่ระบบด้วย Google</button>
+        <button class="btn block" id="logoutBtn" hidden><span data-ico="log-out"></span> ออกจากระบบ</button>
+      </div>
+
+      <p class="muted" id="localNote">ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น ควร Export สำรองเป็นระยะ</p>
       <button class="btn block" id="exportBtn"><span data-ico="download"></span> Export สำรองข้อมูล (.json)</button>
       <button class="btn block" id="importBtn"><span data-ico="upload"></span> Import จากไฟล์สำรอง</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden />
@@ -106,5 +119,6 @@
   <script src="icons.js"></script>
   <script src="plan.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="cloud.js"></script>
 </body>
 </html>

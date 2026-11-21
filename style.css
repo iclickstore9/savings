@@ -290,3 +290,21 @@ html, body { overflow-x: clip; }
   padding: 0 42px 0 34px; margin-bottom: -6px; font-size: .78rem; color: var(--muted);
 }
 .row-head.extra { padding-left: 0; }
+
+/* ---------- ซิงก์ ---------- */
+.sync-box { background: var(--bg); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.sync-box p { margin: 0; }
+.sync-head { display: flex; align-items: center; gap: 8px; }
+.sync-head .ico { color: var(--primary); }
+.sync-status { margin-left: auto; font-size: .8rem; color: var(--muted); }
+.sync-status.ok { color: var(--in); }
+.sync-status.warn { color: var(--out); }
+.sync-box .btn.block { background: var(--card); }
+.btn.primary-soft { color: var(--primary); }
+.btn.primary-soft .ico { color: var(--primary); }
+.sync-badge .ico { width: 20px; height: 20px; }
+.sync-badge { color: var(--muted); }
+.sync-badge.ok { color: var(--in); }
+.sync-badge.warn { color: var(--out); }
+.ico.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
