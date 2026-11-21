@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '7';
+const APP_VERSION = '8';
 const GOAL_ICONS = [
   'house', 'shield-check', 'car', 'plane', 'graduation-cap',
   'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
