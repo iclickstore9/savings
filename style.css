@@ -28,7 +28,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
-body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+body { padding-bottom: calc(160px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
 button { font-family: inherit; }
 
 .ico { width: 1.25em; height: 1.25em; flex: none; vertical-align: -0.25em; }
@@ -133,7 +133,7 @@ main { max-width: 560px; margin: 0 auto; padding: 8px 16px 16px; }
 
 /* ---------- ปุ่มลอย ---------- */
 .fab {
-  position: fixed; right: 20px; bottom: calc(22px + env(safe-area-inset-bottom));
+  position: fixed; right: 20px; bottom: calc(84px + env(safe-area-inset-bottom));
   width: 62px; height: 62px; border-radius: 20px; border: 0; display: grid; place-items: center;
   background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: var(--on-primary);
   box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--primary) 70%, transparent); cursor: pointer;
@@ -208,7 +208,7 @@ input[name="amount"] { font-size: 1.5rem; font-weight: 600; padding: 10px 14px; 
 .btn:active { opacity: .8; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: calc(160px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   background: #17201e; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: .9rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .25); z-index: 20; white-space: nowrap;
 }
@@ -306,3 +306,111 @@ html, body { overflow-x: clip; }
 .sync-badge.warn { color: var(--out); }
 .ico.spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- แถบแท็บด้านล่าง ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: grid; grid-template-columns: 1fr 1fr;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+.tabbar a {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0;
+  color: var(--muted); text-decoration: none; font-size: .78rem; border-radius: 12px;
+}
+.tabbar a .ico { width: 24px; height: 24px; }
+.tabbar a.active { color: var(--primary); font-weight: 600; }
+.tabbar a:active { background: var(--line); }
+
+/* ---------- หน้ารายรับรายจ่าย ---------- */
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin: 0 -6px 8px; }
+.month-nav h2 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+
+.money-summary { padding: 18px; }
+.ms-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ms-grid > div { background: var(--bg); border-radius: 14px; padding: 10px 12px; min-width: 0; overflow: hidden; }
+.ms-grid .k, .ms-balance .k { color: var(--muted); font-size: .8rem; }
+.ms-grid .v { font-weight: 600; font-size: clamp(.9rem, 4.4vw, 1.1rem); white-space: nowrap; }
+.ms-balance { text-align: center; margin-top: 14px; }
+.ms-balance .big { font-size: clamp(1.6rem, 9vw, 2rem); font-weight: 600; color: var(--primary); letter-spacing: -.01em; }
+.ms-balance .big.neg { color: var(--out); }
+.ms-compare { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: .82rem; color: var(--muted); margin-top: 4px; }
+.ms-compare .ico { width: 16px; height: 16px; }
+.btn.save-left {
+  width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary);
+}
+
+.quick-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 4px; }
+.ql {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; min-width: 0;
+}
+@media (prefers-color-scheme: light) { .ql { border-color: transparent; box-shadow: var(--shadow); } }
+.ql .ico { color: var(--primary); width: 20px; height: 20px; }
+.ql span { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; }
+.ql b { font-weight: 600; color: var(--muted); font-size: .85rem; }
+.ql:active { transform: scale(.98); }
+
+.count {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px;
+  border-radius: 99px; background: var(--out); color: #fff; font-size: .75rem; vertical-align: 1px;
+}
+.entry.pending { cursor: default; gap: 8px; }
+.icon-btn.small { width: 36px; height: 36px; color: var(--muted); }
+.icon-btn.small .ico { width: 18px; height: 18px; }
+.confirm-btn {
+  display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 12px; padding: 8px 12px;
+  background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 500; font-size: .85rem; cursor: pointer; white-space: nowrap;
+}
+.confirm-btn .ico { width: 16px; height: 16px; }
+.confirm-btn:active { opacity: .8; }
+
+/* กราฟแท่งแนวนอน: สีเดียว เรียงมาก→น้อย */
+.cat-bars.card { padding: 6px 12px; }
+.cat-bar-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 2px;
+  background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.cat-bar-row:last-child { border-bottom: 0; }
+.cat-bar-row.sel { background: color-mix(in srgb, var(--primary) 8%, transparent); border-radius: 12px; }
+.cbr-main { flex: 1; min-width: 0; }
+.cbr-top { display: flex; justify-content: space-between; gap: 8px; font-size: .92rem; }
+.cbr-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cbr-amt { font-weight: 600; white-space: nowrap; }
+.cbr-track { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.cbr-bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--primary); }
+.cbr-pct { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+
+/* ตัวเลือกหมวดในฟอร์ม */
+.field-label { font-size: .88rem; color: var(--muted); margin-bottom: -6px; }
+.cat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.cat-grid button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px;
+  border-radius: 14px; border: 2px solid transparent; background: var(--bg); color: var(--muted);
+  font: inherit; font-size: .72rem; cursor: pointer; min-width: 0;
+}
+.cat-grid button span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-grid button .ico { width: 22px; height: 22px; color: var(--c, var(--muted)); }
+.cat-grid button.sel { border-color: var(--c, var(--primary)); color: var(--text); background: color-mix(in srgb, var(--c, var(--primary)) 10%, var(--card)); }
+.cat-grid button.add-cat { border: 2px dashed var(--line); background: transparent; }
+
+.segmented input[value="expense"]:checked + span { background: var(--out); color: #fff; }
+.segmented input[value="income"]:checked + span { background: var(--in); color: #fff; }
+
+.rec-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rec-sum > div { background: var(--bg); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; min-width: 0; }
+.rec-sum .k { font-size: .75rem; color: var(--muted); }
+.rec-sum b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#recBody h2, #catBody h2 { display: flex; align-items: center; gap: 8px; }
+#recBody h2 .ico, #catBody h2 .ico { color: var(--primary); }
+#recBody .entry-list, #catBody .entry-list { margin-bottom: 0; }
+.pad { padding: 12px 2px; }
+.muted-ico { color: var(--muted); width: 18px; height: 18px; }
+@media (max-width: 360px) {
+  .confirm-btn span { display: none; }
+  .confirm-btn { padding: 8px 10px; }
+  .ql { padding: 12px 10px; }
+}

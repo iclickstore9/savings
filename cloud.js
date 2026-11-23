@@ -8,7 +8,7 @@ import { firebaseConfig } from './firebase-config.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/13.4.0/';
 const SYNC_KEY = 'kapook-om-sync'; // จำว่าเครื่องนี้ผูกกับบัญชีไหนแล้ว
-const NAMES = ['goals', 'entries'];
+const NAMES = ['goals', 'entries', 'txns', 'categories', 'recurring']; // ต้องตรงกับ COLLECTIONS ใน app.js
 
 const bridge = window.appBridge;
 const $ = (s) => document.querySelector(s);
@@ -80,8 +80,8 @@ async function main() {
   let user = null;
   let ready = false; // ซิงก์พร้อม (รวมข้อมูลครั้งแรกเสร็จแล้ว)
   let unsubs = [];
-  const synced = { goals: new Map(), entries: new Map() }; // id → key ของข้อมูลที่ตรงกับคลาวด์
-  const meta = { goals: null, entries: null };
+  const synced = Object.fromEntries(NAMES.map((n) => [n, new Map()])); // id → key ของข้อมูลที่ตรงกับคลาวด์
+  const meta = Object.fromEntries(NAMES.map((n) => [n, null]));
 
   const col = (name) => F.collection(db, 'users', user.uid, name);
   const ref = (name, id) => F.doc(db, 'users', user.uid, name, id);
@@ -105,7 +105,7 @@ async function main() {
     const ops = [];
     for (const name of NAMES) {
       const ids = new Set();
-      for (const item of s[name]) {
+      for (const item of s[name] || []) {
         ids.add(item.id);
         const k = keyOf(item);
         if (synced[name].get(item.id) !== k) {
@@ -143,7 +143,7 @@ async function main() {
     let uploaded = 0;
     NAMES.forEach((name, i) => {
       const cloud = new Map(snaps[i].docs.map((d) => [d.id, d.data()]));
-      for (const item of s[name]) {
+      for (const item of s[name] || []) {
         const c = cloud.get(item.id);
         if (!c || (item.updatedAt || 0) > (c.updatedAt || 0)) {
           const data = clean({ ...item, updatedAt: item.updatedAt || Date.now() });
@@ -161,9 +161,10 @@ async function main() {
   }
 
   function updateSyncStatus() {
-    if (!meta.goals || !meta.entries) return;
-    const pending = meta.goals.hasPendingWrites || meta.entries.hasPendingWrites;
-    const cached = meta.goals.fromCache || meta.entries.fromCache;
+    const all = NAMES.map((n) => meta[n]);
+    if (all.some((m) => !m)) return;
+    const pending = all.some((m) => m.hasPendingWrites);
+    const cached = all.some((m) => m.fromCache);
     if (pending) setStatus(navigator.onLine ? 'syncing' : 'offline');
     else if (cached && !navigator.onLine) setStatus('offline');
     else setStatus('synced');
@@ -193,9 +194,10 @@ async function main() {
     unsubs.forEach((u) => u());
     unsubs = [];
     ready = false;
-    meta.goals = meta.entries = null;
-    synced.goals.clear();
-    synced.entries.clear();
+    for (const n of NAMES) {
+      meta[n] = null;
+      synced[n].clear();
+    }
   }
 
   async function start() {

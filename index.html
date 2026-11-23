@@ -28,6 +28,128 @@
 
   <button id="fab" class="fab" aria-label="เพิ่ม"><span data-ico="plus"></span></button>
 
+  <nav class="tabbar">
+    <a href="#/" data-tab="save"><span data-ico="piggy-bank"></span><span>เงินออม</span></a>
+    <a href="#/money" data-tab="money"><span data-ico="wallet-cards"></span><span>รายรับรายจ่าย</span></a>
+  </nav>
+
+  <!-- ฟอร์มรายรับ/รายจ่าย -->
+  <dialog id="txnDialog">
+    <form id="txnForm" method="dialog">
+      <h2 id="txnDialogTitle">บันทึกรายจ่าย</h2>
+      <div class="segmented">
+        <label><input type="radio" name="ttype" value="expense" checked /><span>รายจ่าย</span></label>
+        <label><input type="radio" name="ttype" value="income" /><span>รายรับ</span></label>
+      </div>
+      <label>จำนวนเงิน (บาท)
+        <input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="0.00" />
+      </label>
+      <div class="field-label">หมวดหมู่</div>
+      <div class="cat-grid" id="txnCats"></div>
+      <input type="hidden" name="categoryId" />
+      <label>วันที่
+        <input name="date" type="date" required />
+      </label>
+      <label>โน้ต
+        <input name="note" maxlength="100" placeholder="เช่น ข้าวเที่ยง, ค่าไฟ ต.ค." />
+      </label>
+      <p class="muted small" id="txnLinkInfo" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn danger" id="txnDeleteBtn" hidden>ลบ</button>
+        <button type="button" class="btn ghost" id="txnSkipBtn" hidden>ข้ามเดือนนี้</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- รายการประจำ: รายการ -->
+  <dialog id="recDialog">
+    <div class="menu" id="recBody"></div>
+  </dialog>
+
+  <!-- รายการประจำ: ฟอร์ม -->
+  <dialog id="recFormDialog">
+    <form id="recForm" method="dialog">
+      <h2 id="recFormTitle">รายการประจำใหม่</h2>
+      <div class="segmented">
+        <label><input type="radio" name="rtype" value="expense" checked /><span>รายจ่ายประจำ</span></label>
+        <label><input type="radio" name="rtype" value="income" /><span>รายรับประจำ</span></label>
+      </div>
+      <label>ชื่อ
+        <input name="name" required maxlength="40" placeholder="เช่น ค่าเช่าห้อง, เงินเดือน" />
+      </label>
+      <div class="two-col">
+        <label>จำนวนเงิน (บาท)
+          <input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="0" />
+        </label>
+        <label>ทุกวันที่
+          <input name="day" type="number" inputmode="numeric" min="1" max="31" step="1" required placeholder="1-31" />
+        </label>
+      </div>
+      <div class="field-label">หมวดหมู่</div>
+      <div class="cat-grid" id="recCats"></div>
+      <input type="hidden" name="categoryId" />
+      <div class="actions">
+        <button type="button" class="btn danger" id="recDeleteBtn" hidden>ลบ</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- หมวดหมู่: รายการ -->
+  <dialog id="catDialog">
+    <div class="menu" id="catBody"></div>
+  </dialog>
+
+  <!-- หมวดหมู่: ฟอร์ม -->
+  <dialog id="catFormDialog">
+    <form id="catForm" method="dialog">
+      <h2 id="catFormTitle">หมวดหมู่ใหม่</h2>
+      <div class="segmented">
+        <label><input type="radio" name="ctype" value="expense" checked /><span>รายจ่าย</span></label>
+        <label><input type="radio" name="ctype" value="income" /><span>รายรับ</span></label>
+      </div>
+      <label>ชื่อ
+        <input name="name" required maxlength="24" placeholder="เช่น กาแฟ, ค่าเทอมลูก" />
+      </label>
+      <div class="field-label">ไอคอน</div>
+      <div class="emoji-row" id="catIconRow"></div>
+      <input type="hidden" name="icon" />
+      <div class="field-label">สี</div>
+      <div class="color-row" id="catColorRow"></div>
+      <input type="hidden" name="color" />
+      <div class="actions">
+        <button type="button" class="btn danger" id="catDeleteBtn" hidden>ลบ</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ออมเงินที่เหลือ -->
+  <dialog id="saveLeftDialog">
+    <form id="saveLeftForm" method="dialog">
+      <h2>ออมเงินที่เหลือ</h2>
+      <p class="muted small" id="saveLeftInfo"></p>
+      <label>เข้าเป้าหมาย
+        <select name="goalId" required></select>
+      </label>
+      <label>จำนวนเงิน (บาท)
+        <input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required />
+      </label>
+      <div class="actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+        <button type="submit" class="btn primary">ออมเลย</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- ฟอร์มเป้าหมาย -->
   <dialog id="goalDialog">
     <form id="goalForm" method="dialog">
@@ -118,6 +240,7 @@
 
   <script src="icons.js"></script>
   <script src="plan.js"></script>
+  <script src="money.js"></script>
   <script src="app.js"></script>
   <script type="module" src="cloud.js"></script>
 </body>

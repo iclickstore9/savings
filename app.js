@@ -2,7 +2,9 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '8';
+const APP_VERSION = '9';
+// ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
+const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring'];
 const GOAL_ICONS = [
   'house', 'shield-check', 'car', 'plane', 'graduation-cap',
   'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
@@ -22,7 +24,13 @@ const goalBadge = (g, cls = '') =>
   `<div class="goal-emoji ${cls}" style="background:${g.color}1f;color:${g.color}">${ico(goalIcon(g))}</div>`;
 
 function emptyState() {
-  return { version: 1, goals: [], entries: [] };
+  return { version: 1, goals: [], entries: [], txns: [], categories: [], recurring: [] };
+}
+
+// เติมชุดข้อมูลที่ยังไม่มี (ข้อมูลเวอร์ชันเก่า / ไฟล์ Import เก่า)
+function normalize(data) {
+  for (const k of COLLECTIONS) if (!Array.isArray(data[k])) data[k] = [];
+  return data;
 }
 
 function load() {
@@ -31,7 +39,7 @@ function load() {
     if (!raw) return emptyState();
     const data = JSON.parse(raw);
     if (!Array.isArray(data.goals) || !Array.isArray(data.entries)) return emptyState();
-    return data;
+    return normalize(data);
   } catch {
     return emptyState();
   }
@@ -54,7 +62,7 @@ window.appBridge = {
   // รับข้อมูลจากคลาวด์ (เฉพาะส่วนที่ส่งมา) แล้ววาดหน้าจอใหม่ถ้ามีอะไรเปลี่ยน
   setData(part) {
     let changed = false;
-    for (const k of ['goals', 'entries']) {
+    for (const k of COLLECTIONS) {
       if (part[k] && JSON.stringify(part[k]) !== JSON.stringify(state[k])) {
         state[k] = part[k];
         changed = true;
@@ -105,6 +113,8 @@ const sortEntries = (list) =>
 function route() {
   const m = location.hash.match(/^#\/goal\/(.+)$/);
   if (m && goalById(m[1])) return { view: 'goal', id: m[1] };
+  const mm = location.hash.match(/^#\/money(?:\/(\d{4}-\d{2}))?$/);
+  if (mm) return { view: 'money', month: mm[1] || Money.curMonth() };
   return { view: 'home' };
 }
 
@@ -112,7 +122,13 @@ function render(opts) {
   const keepScroll = opts?.keepScroll === true;
   const r = route();
   const app = $('#app');
-  if (r.view === 'goal') {
+  document.querySelectorAll('.tabbar a').forEach((a) =>
+    a.classList.toggle('active', a.dataset.tab === (r.view === 'money' ? 'money' : 'save')));
+  if (r.view === 'money') {
+    $('#title').textContent = 'รายรับรายจ่าย';
+    $('#backBtn').hidden = true;
+    app.innerHTML = Money.renderMoney(r.month);
+  } else if (r.view === 'goal') {
     const g = goalById(r.id);
     $('#title').textContent = g.name;
     $('#backBtn').hidden = false;
@@ -353,7 +369,9 @@ entryForm.addEventListener('submit', (ev) => {
     note: entryForm.note.value.trim(),
   };
   if (editingEntryId) {
-    Object.assign(state.entries.find((x) => x.id === editingEntryId), data);
+    const e = state.entries.find((x) => x.id === editingEntryId);
+    Object.assign(e, data);
+    Money.onEntryChanged(e);
   } else {
     state.entries.push({ id: uid(), createdAt: Date.now(), ...data });
   }
@@ -364,7 +382,9 @@ entryForm.addEventListener('submit', (ev) => {
 });
 
 $('#entryDeleteBtn').addEventListener('click', () => {
-  if (!confirm('ลบรายการนี้?')) return;
+  const e = state.entries.find((x) => x.id === editingEntryId);
+  if (!confirm(e.txnId ? 'ลบรายการนี้? รายจ่าย "เงินออม" ที่ผูกไว้ในหน้ารายรับรายจ่ายจะถูกลบด้วย' : 'ลบรายการนี้?')) return;
+  Money.onEntryDeleted(e);
   state.entries = state.entries.filter((x) => x.id !== editingEntryId);
   save();
   entryDialog.close();
@@ -395,8 +415,10 @@ $('#importFile').addEventListener('change', async (ev) => {
   try {
     const data = JSON.parse(await file.text());
     if (!Array.isArray(data.goals) || !Array.isArray(data.entries)) throw new Error('bad');
-    if (!confirm(`นำเข้า ${data.goals.length} เป้าหมาย, ${data.entries.length} รายการ?\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+    normalize(data);
+    if (!confirm(`นำเข้า ${data.goals.length} เป้าหมาย, ${data.entries.length} รายการออม, ${data.txns.length} รายรับรายจ่าย?\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
     state = data;
+    Money.ensureCategories();
     save();
     menuDialog.close();
     location.hash = '#/';
@@ -412,6 +434,7 @@ $('#resetBtn').addEventListener('click', () => {
   if (!confirm('ยืนยันอีกครั้ง: ลบทั้งหมดจริงหรือไม่?')) return;
   state = emptyState();
   save();
+  Money.ensureCategories();
   menuDialog.close();
   location.hash = '#/';
   render();
@@ -431,6 +454,7 @@ $('#app').addEventListener('click', (ev) => {
 
 $('#fab').addEventListener('click', () => {
   const r = route();
+  if (r.view === 'money') return Money.openTxnForm({ month: r.month });
   openEntryForm({ goalId: r.view === 'goal' ? r.id : undefined });
 });
 $('#backBtn').addEventListener('click', () => {
@@ -495,6 +519,7 @@ function enableSwipeToClose(d) {
 
 document.getElementById('appVersion').textContent = 'เวอร์ชัน ' + APP_VERSION;
 document.querySelectorAll('[data-ico]').forEach((el) => (el.outerHTML = ico(el.dataset.ico)));
+Money.ensureCategories();
 window.addEventListener('hashchange', render);
 render();
 
