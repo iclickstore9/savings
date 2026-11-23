@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '13';
+const APP_VERSION = '14';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
 const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [
@@ -250,15 +250,34 @@ function renderHome() {
   const thisMonth = state.entries.filter((e) => savingIds.has(e.goalId) && e.date.startsWith(ym)).reduce((s, e) => s + signed(e), 0);
   const invest = byType.invest.map(investInfo).filter((x) => x.known);
   const investPl = invest.reduce((s, x) => s + x.pl, 0);
+  const investCost = invest.reduce((s, x) => s + x.cost, 0);
+  const investCostAll = byType.invest.reduce((s, g) => s + balanceOf(g.id), 0);
+
+  // สรุปสั้นๆ ฝั่งขวาของหัวข้อแต่ละกลุ่ม
+  const sectionSum = (k) => {
+    if (k === 'invest') {
+      return invest.length
+        ? `<span class="amt ${plClass(investPl)}">${signedFmt(investPl)}${investCost > 0 ? ` (${pctFmt((investPl / investCost) * 100)})` : ''}</span>`
+        : `ต้นทุน ${fmt(investCostAll)}`;
+    }
+    if (k === 'debt') return `คงเหลือ <b>${fmt(debtLeft)}</b>`;
+    return '';
+  };
 
   const types = Object.keys(byType).filter((k) => byType[k].length);
   const sections = types
-    .map((k, i) => `
+    .map((k, i) => {
+      const sum = sectionSum(k);
+      const add = i === 0
+        ? `<button class="link-btn${sum ? ' icon-only' : ''}" data-action="new-goal" aria-label="เพิ่มเป้าหมาย">${ico('plus')}${sum ? '' : ' เพิ่ม'}</button>`
+        : '';
+      return `
       <div class="section-title">
         <h2>${GOAL_TYPES[k].label}</h2>
-        ${i === 0 ? `<button class="link-btn" data-action="new-goal">${ico('plus')} เพิ่ม</button>` : ''}
+        <div class="st-right">${sum ? `<span class="st-sum">${sum}</span>` : ''}${add}</div>
       </div>
-      ${byType[k].map(goalCard).join('')}`)
+      ${byType[k].map(goalCard).join('')}`;
+    })
     .join('');
 
   const recent = sortEntries(state.entries).slice(0, 5);
@@ -267,8 +286,6 @@ function renderHome() {
       <div class="label">เงินออมทั้งหมด${byType.invest.length ? ' (รวมมูลค่าลงทุน)' : ''}</div>
       <div class="big">${fmt(savingTotal)}</div>
       <div class="sub">เดือนนี้ ${thisMonth >= 0 ? '+' : '−'}${fmt(Math.abs(thisMonth))} · ${state.goals.length} เป้าหมาย</div>
-      ${invest.length ? `<div class="sub">ลงทุน ${signedFmt(investPl)}</div>` : ''}
-      ${byType.debt.length ? `<div class="sub">หนี้คงเหลือ ${fmt(debtLeft)}</div>` : ''}
     </section>
     ${sections}
     ${recent.length ? `

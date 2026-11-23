@@ -471,3 +471,10 @@ html, body { overflow-x: clip; }
 .memo-note { white-space: pre-wrap; font-size: .92rem; }
 .memo-row + .memo-note { border-top: 1px solid var(--line); padding-top: 8px; }
 #marketPreview { margin: 0; font-weight: 600; }
+
+/* สรุปฝั่งขวาของหัวข้อกลุ่มเป้า */
+.st-right { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.st-sum { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+.st-sum b { color: var(--text); font-weight: 600; }
+.st-sum .amt { font-weight: 600; }
+.link-btn.icon-only { padding: 4px; }
