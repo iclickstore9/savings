@@ -93,7 +93,7 @@ function planTarget(g, plan) {
 
 /** คำนวณผลลัพธ์ของแผน (ใช้ทั้งในหน้าคาดการณ์และสรุปในหน้าเป้าหมาย) */
 function computePlan(g, plan) {
-  const start = balanceOf(g.id);
+  const start = goalValue(g);
   const target = planTarget(g, plan);
   const extras = plan.extras.filter((e) => num(e.amount) > 0);
   const rate = num(plan.rate);
@@ -206,7 +206,7 @@ function renderPlanForm() {
     </div>
 
     <div class="two-col">
-      <label>ยอดปัจจุบัน<div class="readonly">${fmt(balanceOf(g.id))}</div></label>
+      <label>ยอดปัจจุบัน<div class="readonly">${fmt(goalValue(g))}</div></label>
       <label>เป้าหมาย (บาท)${numInput('target', p.target, g.target ? money.format(g.target) : 'ไม่มีเป้า')}</label>
     </div>
 

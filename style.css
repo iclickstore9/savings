@@ -451,3 +451,23 @@ html, body { overflow-x: clip; }
 .cal-btn { color: var(--primary) !important; margin-right: -6px; }
 .btn.cal-wide { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--primary); }
 .btn.cal-wide .ico { color: var(--primary); }
+
+/* ---------- ประเภทเป้า: ลงทุน / หนี้ ---------- */
+.segmented.seg3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gfields { display: flex; flex-direction: column; gap: 10px; }
+.gtip { margin: 0; }
+#debtPreview { margin: 0; color: var(--primary); }
+.goal-text { min-width: 0; }
+.goal-sub .ico.pl-ico { width: 14px; height: 14px; vertical-align: -2px; }
+.goal-amount small { display: block; font-size: .7rem; font-weight: 400; color: var(--muted); }
+.pl-line { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; margin-top: 2px; }
+.pl-line .ico { width: 18px; height: 18px; }
+.btn.pay-btn { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.pay-btn.soft { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.memo-card { display: flex; flex-direction: column; gap: 8px; }
+.memo-row { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.memo-row .ico { color: var(--primary); width: 18px; height: 18px; }
+.memo-row b { color: var(--text); font-weight: 600; }
+.memo-note { white-space: pre-wrap; font-size: .92rem; }
+.memo-row + .memo-note { border-top: 1px solid var(--line); padding-top: 8px; }
+#marketPreview { margin: 0; font-weight: 600; }

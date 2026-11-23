@@ -9,6 +9,7 @@
  */
 window.Money = (() => {
   const SAVING_CAT = 'c-saving';
+  const DEBT_CAT = 'c-debt';
   const DEFAULT_CATEGORIES = [
     ['c-food', 'expense', 'อาหาร', 'utensils', '#ea580c'],
     ['c-travel', 'expense', 'เดินทาง', 'bus', '#2563eb'],
@@ -55,18 +56,26 @@ window.Money = (() => {
   const catsOfType = (type) => state.categories.filter((c) => c.type === type);
   const catBadge = (c, cls = 'sm') =>
     `<div class="goal-emoji ${cls}" style="background:${c.color}1f;color:${c.color}">${ico(c.icon)}</div>`;
-  const isSavingTxn = (t) => t.type === 'expense' && t.categoryId === SAVING_CAT;
+  // หมวด "เงินออม" → เป้าออม/ลงทุน · หมวด "ผ่อน/หนี้" → เป้าหนี้
+  const goalsForCat = (catId) =>
+    catId === SAVING_CAT ? state.goals.filter((g) => goalType(g) !== 'debt')
+      : catId === DEBT_CAT ? state.goals.filter((g) => goalType(g) === 'debt')
+        : [];
+  const canLink = (t, g) => t.type === 'expense' && !!g && goalsForCat(t.categoryId).includes(g);
   const linkedEntry = (t) => (t.goalEntryId ? state.entries.find((e) => e.id === t.goalEntryId) : null);
   const goalName = (id) => goalById(id)?.name;
-  const goalOptions = (selected) =>
+  const goalOptions = (selected, list) =>
     '<option value="">ไม่เชื่อมเป้า</option>' +
-    state.goals.map((g) => `<option value="${g.id}" ${g.id === selected ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-  const entryNoteOf = (t) => (t.note ? `${t.note} (จากรายรับรายจ่าย)` : 'จากรายรับรายจ่าย');
+    list.map((g) => `<option value="${g.id}" ${g.id === selected ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+  const entryNoteOf = (t) => {
+    const base = t.categoryId === DEBT_CAT ? 'จ่ายงวด' : '';
+    return t.note ? `${t.note} (จากรายรับรายจ่าย)` : `${base ? base + ' ' : ''}(จากรายรับรายจ่าย)`;
+  };
 
   // ผูก/ย้าย/ยกเลิก ยอดฝากในเป้าออมให้ตรงกับรายจ่ายหมวดเงินออม
   function linkTxnToGoal(t, goalId) {
     const existing = linkedEntry(t);
-    if (!goalId || !goalById(goalId) || !isSavingTxn(t)) {
+    if (!goalId || !canLink(t, goalById(goalId))) {
       if (existing) state.entries = state.entries.filter((e) => e.id !== existing.id);
       delete t.goalEntryId;
       return;
@@ -290,13 +299,16 @@ window.Money = (() => {
     onPick?.(selected);
   }
 
-  // แสดงช่อง "เข้าเป้าหมาย" เมื่อเลือกหมวดเงินออม (รายจ่าย)
+  // แสดงช่องเลือกเป้าเมื่อเลือกหมวด "เงินออม" หรือ "ผ่อน/หนี้" (รายจ่าย)
   function toggleGoalPick(wrap, select, type, catId, preferGoal) {
-    const show = type === 'expense' && catId === SAVING_CAT;
+    const list = type === 'expense' ? goalsForCat(catId) : [];
+    const show = list.length > 0;
     wrap.hidden = !show;
     if (!show) return;
-    const cur = preferGoal !== undefined ? preferGoal : select.value || state.goals[0]?.id || '';
-    select.innerHTML = goalOptions(cur);
+    wrap.firstChild.textContent = catId === DEBT_CAT ? 'ตัดยอดหนี้' : 'เข้าเป้าหมาย';
+    let cur = preferGoal !== undefined ? preferGoal : select.value;
+    if (!list.some((g) => g.id === cur)) cur = preferGoal === '' ? '' : list[0].id;
+    select.innerHTML = goalOptions(cur, list);
   }
 
   function setTxnType(type, selected, preferGoal) {
@@ -669,14 +681,15 @@ window.Money = (() => {
   const saveLeftForm = q('#saveLeftForm');
 
   function openSaveLeft() {
-    if (!state.goals.length) {
+    const savingGoals = goalsForCat(SAVING_CAT);
+    if (!savingGoals.length) {
       toast('สร้างเป้าหมายการออมก่อน (แท็บเงินออม)');
       return;
     }
     const ym = lastMonth;
     const list = txnsOf(ym);
     const left = sumType(list, 'income') - sumType(list, 'expense');
-    saveLeftForm.goalId.innerHTML = state.goals.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+    saveLeftForm.goalId.innerHTML = savingGoals.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
     saveLeftForm.amount.value = Math.max(0, round2(left));
     q('#saveLeftInfo').textContent = `${fmtMonth(ym)} เหลือ ${fmt(left)} — บันทึกเป็นรายจ่ายหมวด "เงินออม" และเป็นยอดฝากในเป้าที่เลือก`;
     saveLeftDialog.showModal();
