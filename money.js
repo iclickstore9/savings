@@ -55,6 +55,31 @@ window.Money = (() => {
   const catsOfType = (type) => state.categories.filter((c) => c.type === type);
   const catBadge = (c, cls = 'sm') =>
     `<div class="goal-emoji ${cls}" style="background:${c.color}1f;color:${c.color}">${ico(c.icon)}</div>`;
+  const isSavingTxn = (t) => t.type === 'expense' && t.categoryId === SAVING_CAT;
+  const linkedEntry = (t) => (t.goalEntryId ? state.entries.find((e) => e.id === t.goalEntryId) : null);
+  const goalName = (id) => goalById(id)?.name;
+  const goalOptions = (selected) =>
+    '<option value="">ไม่เชื่อมเป้า</option>' +
+    state.goals.map((g) => `<option value="${g.id}" ${g.id === selected ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+  const entryNoteOf = (t) => (t.note ? `${t.note} (จากรายรับรายจ่าย)` : 'จากรายรับรายจ่าย');
+
+  // ผูก/ย้าย/ยกเลิก ยอดฝากในเป้าออมให้ตรงกับรายจ่ายหมวดเงินออม
+  function linkTxnToGoal(t, goalId) {
+    const existing = linkedEntry(t);
+    if (!goalId || !goalById(goalId) || !isSavingTxn(t)) {
+      if (existing) state.entries = state.entries.filter((e) => e.id !== existing.id);
+      delete t.goalEntryId;
+      return;
+    }
+    if (existing) {
+      Object.assign(existing, { goalId, amount: t.amount, date: t.date });
+    } else {
+      const e = { id: uid(), createdAt: Date.now(), goalId, type: 'in', amount: t.amount, date: t.date, note: entryNoteOf(t), txnId: t.id };
+      state.entries.push(e);
+      t.goalEntryId = e.id;
+    }
+  }
+
   const txnsOf = (ym) => state.txns.filter((t) => t.date.startsWith(ym));
   const sumType = (list, type) => list.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
@@ -168,6 +193,15 @@ window.Money = (() => {
         ${balance > 0 ? `<button class="btn save-left" data-mact="save-left">${ico('piggy-bank')} ออมเงินที่เหลือ</button>` : ''}
       </section>
 
+      <button class="card plan-card" data-mact="budget">
+        <div class="plan-ico">${ico('calculator')}</div>
+        <div class="plan-text">
+          <div class="plan-title">วางแผนรายเดือน</div>
+          <div class="plan-sub">${esc(Budget.summary())}</div>
+        </div>
+        ${ico('chevron-right', 'muted-ico')}
+      </button>
+
       <div class="quick-links">
         <button class="ql" data-mact="recurring">${ico('repeat')}<span>รายการประจำ</span><b>${state.recurring.length}</b></button>
         <button class="ql" data-mact="categories">${ico('tags')}<span>หมวดหมู่</span><b>${state.categories.length}</b></button>
@@ -189,7 +223,8 @@ window.Money = (() => {
     const label = t.note || c.name;
     const tags = [c.name];
     if (t.recurringId) tags.push('ประจำ');
-    if (t.goalEntryId) tags.push('เข้าเป้าออม');
+    const le = linkedEntry(t);
+    if (le && goalName(le.goalId)) tags.push('→ ' + goalName(le.goalId));
     return `
       <div class="entry" data-mact="txn" data-id="${t.id}">
         ${catBadge(c)}
@@ -208,7 +243,7 @@ window.Money = (() => {
         ${catBadge(c)}
         <div class="meta">
           <div class="note">${esc(r.name)}</div>
-          <div class="date">ทุกวันที่ ${r.day} · <span class="amt ${r.type === 'income' ? 'in' : 'out'}">${r.type === 'income' ? '+' : '−'}${fmt(r.amount)}</span></div>
+          <div class="date">ทุกวันที่ ${r.day}${r.goalId && goalName(r.goalId) ? ' → ' + esc(goalName(r.goalId)) : ''} · <span class="amt ${r.type === 'income' ? 'in' : 'out'}">${r.type === 'income' ? '+' : '−'}${fmt(r.amount)}</span></div>
         </div>
         <button class="icon-btn small" data-mact="pending-edit" data-id="${r.id}" data-ym="${ym}" aria-label="แก้ยอดก่อนยืนยัน">${ico('pencil')}</button>
         <button class="confirm-btn" data-mact="pending-ok" data-id="${r.id}" data-ym="${ym}" aria-label="ยืนยัน">${ico('check')}<span>ยืนยัน</span></button>
@@ -228,6 +263,7 @@ window.Money = (() => {
     else if (mact === 'recurring') openRecList();
     else if (mact === 'categories') openCatList();
     else if (mact === 'save-left') openSaveLeft();
+    else if (mact === 'budget') Budget.open();
   });
 
   /* ================= ฟอร์มรายรับ/รายจ่าย ================= */
@@ -235,7 +271,7 @@ window.Money = (() => {
   const txnForm = q('#txnForm');
   let txnCtx = {}; // { txnId } | { recurringId, period } | { month }
 
-  function renderCatGrid(container, input, type, selected) {
+  function renderCatGrid(container, input, type, selected, onPick) {
     const cats = catsOfType(type);
     if (!cats.some((c) => c.id === selected)) selected = cats[0]?.id || '';
     input.value = selected;
@@ -244,18 +280,33 @@ window.Money = (() => {
       .join('') + `<button type="button" class="add-cat" data-add-cat="${type}">${ico('plus')}<span>เพิ่มหมวด</span></button>`;
     container.onclick = (ev) => {
       const add = ev.target.closest('[data-add-cat]');
-      if (add) return openCatForm({ type: add.dataset.addCat, onSaved: (cid) => renderCatGrid(container, input, type, cid) });
+      if (add) return openCatForm({ type: add.dataset.addCat, onSaved: (cid) => { renderCatGrid(container, input, type, cid, onPick); onPick?.(cid); } });
       const b = ev.target.closest('[data-v]');
       if (!b) return;
       input.value = b.dataset.v;
       container.querySelectorAll('[data-v]').forEach((x) => x.classList.toggle('sel', x === b));
+      onPick?.(b.dataset.v);
     };
+    onPick?.(selected);
   }
 
-  function setTxnType(type, selected) {
+  // แสดงช่อง "เข้าเป้าหมาย" เมื่อเลือกหมวดเงินออม (รายจ่าย)
+  function toggleGoalPick(wrap, select, type, catId, preferGoal) {
+    const show = type === 'expense' && catId === SAVING_CAT;
+    wrap.hidden = !show;
+    if (!show) return;
+    const cur = preferGoal !== undefined ? preferGoal : select.value || state.goals[0]?.id || '';
+    select.innerHTML = goalOptions(cur);
+  }
+
+  function setTxnType(type, selected, preferGoal) {
     txnForm.ttype.value = type;
     q('#txnDialogTitle').textContent = (txnCtx.txnId ? 'แก้ไข' : 'บันทึก') + (type === 'income' ? 'รายรับ' : 'รายจ่าย');
-    renderCatGrid(q('#txnCats'), txnForm.categoryId, type, selected);
+    let first = true;
+    renderCatGrid(q('#txnCats'), txnForm.categoryId, type, selected, (cid) => {
+      toggleGoalPick(q('#txnGoalWrap'), txnForm.goalId, type, cid, first ? preferGoal : undefined);
+      first = false;
+    });
   }
 
   function openTxnForm(ctx = {}) {
@@ -268,10 +319,13 @@ window.Money = (() => {
     txnForm.amount.value = t?.amount ?? r?.amount ?? '';
     txnForm.date.value = t?.date || (r ? dateInMonth(ctx.period, r.day) : defDate);
     txnForm.note.value = t?.note ?? r?.name ?? '';
-    setTxnType(type, t?.categoryId || r?.categoryId);
+    txnForm.goalId.innerHTML = '';
+    const le = t ? linkedEntry(t) : null;
+    const preferGoal = t ? (le ? le.goalId : '') : r ? (r.goalId && goalById(r.goalId) ? r.goalId : '') : undefined;
+    setTxnType(type, t?.categoryId || r?.categoryId, preferGoal);
     const info = q('#txnLinkInfo');
     info.hidden = true;
-    if (t?.goalEntryId) { info.hidden = false; info.textContent = 'รายการนี้ผูกกับยอดฝากในเป้าออม แก้/ลบที่นี่ ยอดฝากจะเปลี่ยนตาม'; }
+    if (le) { info.hidden = false; info.textContent = 'รายการนี้ผูกกับยอดฝากในเป้าออม แก้/ลบที่นี่ ยอดฝากจะเปลี่ยนตาม'; }
     else if (t?.recurringId || r) { info.hidden = false; info.textContent = `รายการประจำ${r ? ` "${r.name}" เดือน${fmtMonth(ctx.period)}` : ''}`; }
     q('#txnDeleteBtn').hidden = !t;
     q('#txnSkipBtn').hidden = !r;
@@ -294,24 +348,26 @@ window.Money = (() => {
       date: txnForm.date.value || today(),
       note: txnForm.note.value.trim(),
     };
+    const goalId = q('#txnGoalWrap').hidden ? '' : txnForm.goalId.value;
+    let t;
     if (txnCtx.txnId) {
-      const t = state.txns.find((x) => x.id === txnCtx.txnId);
+      t = state.txns.find((x) => x.id === txnCtx.txnId);
       Object.assign(t, data);
-      syncLinkedEntry(t);
     } else {
-      const t = { id: uid(), createdAt: Date.now(), ...data };
+      t = { id: uid(), createdAt: Date.now(), ...data };
       if (txnCtx.recurringId) { t.recurringId = txnCtx.recurringId; t.period = txnCtx.period; }
       state.txns.push(t);
     }
+    linkTxnToGoal(t, goalId);
     save();
     txnDialog.close();
     render({ keepScroll: true });
-    toast(`${data.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${fmt(amount)} บันทึกแล้ว`);
+    toast(t.goalEntryId ? `ออม ${fmt(amount)} เข้า "${goalName(goalId)}" แล้ว` : `${data.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${fmt(amount)} บันทึกแล้ว`);
   });
 
   q('#txnDeleteBtn').addEventListener('click', () => {
     const t = state.txns.find((x) => x.id === txnCtx.txnId);
-    if (!confirm(t.goalEntryId ? 'ลบรายการนี้? ยอดฝากในเป้าออมที่ผูกไว้จะถูกลบด้วย' : 'ลบรายการนี้?')) return;
+    if (!confirm(linkedEntry(t) ? 'ลบรายการนี้? ยอดฝากในเป้าออมที่ผูกไว้จะถูกลบด้วย' : 'ลบรายการนี้?')) return;
     deleteTxn(t.id);
     save();
     txnDialog.close();
@@ -335,17 +391,16 @@ window.Money = (() => {
     if (t.goalEntryId) state.entries = state.entries.filter((e) => e.id !== t.goalEntryId);
   }
 
-  function syncLinkedEntry(t) {
-    if (!t.goalEntryId) return;
-    const e = state.entries.find((x) => x.id === t.goalEntryId);
-    if (e) { e.amount = t.amount; e.date = t.date; }
-  }
-
   // เรียกจาก app.js เมื่อแก้/ลบยอดฝากในเป้าออมที่ผูกกับรายจ่าย
   function onEntryChanged(entry) {
     if (!entry.txnId) return;
     const t = state.txns.find((x) => x.id === entry.txnId);
     if (t) { t.amount = entry.amount; t.date = entry.date; }
+  }
+  function onGoalDeleted(goalId, removedEntryIds) {
+    const ids = new Set(removedEntryIds);
+    for (const t of state.txns) if (ids.has(t.goalEntryId)) delete t.goalEntryId;
+    for (const r of state.recurring) if (r.goalId === goalId) r.goalId = '';
   }
   function onEntryDeleted(entry) {
     if (entry.txnId) state.txns = state.txns.filter((x) => x.id !== entry.txnId);
@@ -353,13 +408,15 @@ window.Money = (() => {
 
   function confirmRecurring(id, ym) {
     const r = state.recurring.find((x) => x.id === id);
-    state.txns.push({
+    const t = {
       id: uid(), createdAt: Date.now(), type: r.type, amount: r.amount, categoryId: r.categoryId,
       date: dateInMonth(ym, r.day), note: r.name, recurringId: r.id, period: ym,
-    });
+    };
+    state.txns.push(t);
+    linkTxnToGoal(t, r.goalId);
     save();
     render({ keepScroll: true });
-    toast(`ยืนยัน "${r.name}" ${fmt(r.amount)} แล้ว`);
+    toast(t.goalEntryId ? `ออม "${r.name}" ${fmt(r.amount)} เข้า "${goalName(r.goalId)}" แล้ว` : `ยืนยัน "${r.name}" ${fmt(r.amount)} แล้ว`);
   }
 
   /* ================= รายการประจำ ================= */
@@ -382,7 +439,7 @@ window.Money = (() => {
         return `
         <div class="entry" data-rec="${r.id}">
           ${catBadge(c)}
-          <div class="meta"><div class="note">${esc(r.name)}</div><div class="date">ทุกวันที่ ${r.day} · ${esc(c.name)}</div></div>
+          <div class="meta"><div class="note">${esc(r.name)}</div><div class="date">ทุกวันที่ ${r.day} · ${esc(c.name)}${r.goalId && goalName(r.goalId) ? ' → ' + esc(goalName(r.goalId)) : ''}</div></div>
           <div class="amt ${type === 'income' ? 'in' : 'out'}">${fmt(r.amount)}</div>
         </div>`;
       })
@@ -413,9 +470,13 @@ window.Money = (() => {
     if (ev.target.closest('[data-rec-add]')) openRecForm();
   });
 
-  function setRecType(type, selected) {
+  function setRecType(type, selected, preferGoal) {
     recForm.rtype.value = type;
-    renderCatGrid(q('#recCats'), recForm.categoryId, type, selected);
+    let first = true;
+    renderCatGrid(q('#recCats'), recForm.categoryId, type, selected, (cid) => {
+      toggleGoalPick(q('#recGoalWrap'), recForm.goalId, type, cid, first ? preferGoal : undefined);
+      first = false;
+    });
   }
 
   function openRecForm(id) {
@@ -425,7 +486,8 @@ window.Money = (() => {
     recForm.name.value = r?.name || '';
     recForm.amount.value = r?.amount ?? '';
     recForm.day.value = r?.day ?? new Date().getDate();
-    setRecType(r?.type || 'expense', r?.categoryId);
+    recForm.goalId.innerHTML = '';
+    setRecType(r?.type || 'expense', r?.categoryId, r ? (r.goalId && goalById(r.goalId) ? r.goalId : '') : undefined);
     q('#recDeleteBtn').hidden = !r;
     recFormDialog.showModal();
   }
@@ -441,6 +503,7 @@ window.Money = (() => {
     const name = recForm.name.value.trim();
     if (!name || !(amount > 0) || !recForm.categoryId.value) return;
     const data = { type: recForm.rtype.value, name, amount, day, categoryId: recForm.categoryId.value };
+    data.goalId = q('#recGoalWrap').hidden ? '' : recForm.goalId.value;
     if (editingRecId) Object.assign(state.recurring.find((x) => x.id === editingRecId), data);
     else state.recurring.push({ id: uid(), createdAt: Date.now(), startMonth: curMonth(), skips: [], ...data });
     save();
@@ -583,5 +646,5 @@ window.Money = (() => {
     toast(`ออม ${fmt(amount)} เข้า "${g.name}" แล้ว`);
   });
 
-  return { renderMoney, openTxnForm, ensureCategories, onEntryChanged, onEntryDeleted, pendingOf, curMonth };
+  return { renderMoney, openTxnForm, ensureCategories, onEntryChanged, onEntryDeleted, onGoalDeleted, pendingOf, curMonth };
 })();

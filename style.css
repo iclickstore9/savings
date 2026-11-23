@@ -414,3 +414,35 @@ html, body { overflow-x: clip; }
   .confirm-btn { padding: 8px 10px; }
   .ql { padding: 12px 10px; }
 }
+.goal-link select { border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent); }
+
+/* ---------- วางแผนรายเดือน ---------- */
+#budgetBody h2 { display: flex; align-items: center; gap: 8px; }
+#budgetBody h2 .ico { color: var(--primary); }
+#budgetBody .sub-head small { margin-left: auto; font-weight: 600; color: var(--text); font-size: .9rem; }
+#budgetBody .link-btn { align-self: flex-start; margin-top: -6px; }
+.bp-list.card { padding: 2px 12px; margin-bottom: 0; }
+.bp-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.bp-row:last-child { border-bottom: 0; }
+.bp-row.off .bp-name { opacity: .45; text-decoration: line-through; }
+.bp-name { flex: 1; min-width: 0; }
+.bp-name > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bp-name small { color: var(--muted); font-size: .75rem; }
+.bp-amt { width: 112px; flex: none; text-align: right; padding: 9px 10px !important; font-weight: 600; }
+.bp-amt.changed { border-color: var(--primary); color: var(--primary); }
+.bp-amt:disabled { opacity: .4; }
+.bp-name-input { flex: 1; min-width: 0; padding: 9px 10px !important; }
+.bp-check { position: relative; flex: none; width: 26px; height: 26px; cursor: pointer; }
+.bp-check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.bp-check span {
+  width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+  border: 2px solid var(--line); color: transparent;
+}
+.bp-check input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.bp-check .ico { width: 16px; height: 16px; stroke-width: 3; }
+.bp-dot { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none; }
+.bp-dot .ico { width: 15px; height: 15px; }
+.bp-dot.income { background: var(--in-bg); color: var(--in); }
+.bp-dot.expense { background: var(--out-bg); color: var(--out); }
+.res-big.neg { color: var(--out); }
+@media (max-width: 360px) { .bp-amt { width: 92px; } }

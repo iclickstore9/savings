@@ -2,9 +2,9 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '9';
+const APP_VERSION = '11';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
-const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring'];
+const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [
   'house', 'shield-check', 'car', 'plane', 'graduation-cap',
   'gem', 'baby', 'heart-pulse', 'smartphone', 'gift',
@@ -24,7 +24,7 @@ const goalBadge = (g, cls = '') =>
   `<div class="goal-emoji ${cls}" style="background:${g.color}1f;color:${g.color}">${ico(goalIcon(g))}</div>`;
 
 function emptyState() {
-  return { version: 1, goals: [], entries: [], txns: [], categories: [], recurring: [] };
+  return { version: 1, goals: [], entries: [], txns: [], categories: [], recurring: [], plans: [] };
 }
 
 // เติมชุดข้อมูลที่ยังไม่มี (ข้อมูลเวอร์ชันเก่า / ไฟล์ Import เก่า)
@@ -326,6 +326,7 @@ $('#goalDeleteBtn').addEventListener('click', () => {
   const n = entriesOf(g.id).length;
   if (!confirm(`ลบ "${g.name}" และรายการทั้งหมด ${n} รายการ?`)) return;
   state.goals = state.goals.filter((x) => x.id !== g.id);
+  Money.onGoalDeleted(g.id, entriesOf(g.id).map((e) => e.id));
   state.entries = state.entries.filter((e) => e.goalId !== g.id);
   save();
   goalDialog.close();

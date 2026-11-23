@@ -47,6 +47,9 @@
       <div class="field-label">หมวดหมู่</div>
       <div class="cat-grid" id="txnCats"></div>
       <input type="hidden" name="categoryId" />
+      <label id="txnGoalWrap" class="goal-link" hidden>เข้าเป้าหมาย
+        <select name="goalId"></select>
+      </label>
       <label>วันที่
         <input name="date" type="date" required />
       </label>
@@ -91,6 +94,9 @@
       <div class="field-label">หมวดหมู่</div>
       <div class="cat-grid" id="recCats"></div>
       <input type="hidden" name="categoryId" />
+      <label id="recGoalWrap" class="goal-link" hidden>เข้าเป้าหมาย
+        <select name="goalId"></select>
+      </label>
       <div class="actions">
         <button type="button" class="btn danger" id="recDeleteBtn" hidden>ลบ</button>
         <span class="spacer"></span>
@@ -129,6 +135,11 @@
         <button type="submit" class="btn primary">บันทึก</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- วางแผนรายเดือน -->
+  <dialog id="budgetDialog">
+    <div class="menu" id="budgetBody"></div>
   </dialog>
 
   <!-- ออมเงินที่เหลือ -->
@@ -241,6 +252,7 @@
   <script src="icons.js"></script>
   <script src="plan.js"></script>
   <script src="money.js"></script>
+  <script src="budget.js"></script>
   <script src="app.js"></script>
   <script type="module" src="cloud.js"></script>
 </body>

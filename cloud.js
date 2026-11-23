@@ -8,7 +8,7 @@ import { firebaseConfig } from './firebase-config.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/13.4.0/';
 const SYNC_KEY = 'kapook-om-sync'; // จำว่าเครื่องนี้ผูกกับบัญชีไหนแล้ว
-const NAMES = ['goals', 'entries', 'txns', 'categories', 'recurring']; // ต้องตรงกับ COLLECTIONS ใน app.js
+const NAMES = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans']; // ต้องตรงกับ COLLECTIONS ใน app.js
 
 const bridge = window.appBridge;
 const $ = (s) => document.querySelector(s);
