@@ -446,3 +446,8 @@ html, body { overflow-x: clip; }
 .bp-dot.expense { background: var(--out-bg); color: var(--out); }
 .res-big.neg { color: var(--out); }
 @media (max-width: 360px) { .bp-amt { width: 92px; } }
+
+/* ---------- Google Calendar ---------- */
+.cal-btn { color: var(--primary) !important; margin-right: -6px; }
+.btn.cal-wide { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--primary); }
+.btn.cal-wide .ico { color: var(--primary); }

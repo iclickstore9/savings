@@ -61,4 +61,5 @@ const ICONS = {
   "wallet-cards": '<path d="M3 11h3.75a2 2 0 0 1 1.6.8l.45.6a4 4 0 0 0 6.4 0l.45-.6a2 2 0 0 1 1.6-.8H21" /><path d="M3 7h18" /><rect x="3" y="3" width="18" height="18" rx="2" />',
   "arrow-right-left": '<path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" />',
   "landmark": '<path d="M10 18v-7" /><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z" /><path d="M14 18v-7" /><path d="M18 18v-7" /><path d="M3 22h18" /><path d="M6 18v-7" />',
+  "calendar-plus": '<path d="M16 18h6" /><path d="M16 2v3" /><path d="M19 15v6" /><path d="M21 11.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h8.3" /><path d="M3 9h18" /><path d="M8 2v3" />',
 };

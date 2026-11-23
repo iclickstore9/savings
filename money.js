@@ -419,6 +419,44 @@ window.Money = (() => {
     toast(t.goalEntryId ? `ออม "${r.name}" ${fmt(r.amount)} เข้า "${goalName(r.goalId)}" แล้ว` : `ยืนยัน "${r.name}" ${fmt(r.amount)} แล้ว`);
   }
 
+  /* ================= Google Calendar (ลิงก์เพิ่มนัด ไม่ต้องขอสิทธิ์) ================= */
+  // วันครบกำหนดครั้งถัดไป (เดือนนี้ถ้ายังไม่ถึง ไม่งั้นเดือนหน้า) → นัดทั้งวันที่ซ้ำทุกเดือน
+  function nextDue(day) {
+    const ym = curMonth();
+    const thisMonth = dateInMonth(ym, day);
+    return thisMonth >= today() ? thisMonth : dateInMonth(shiftMonth(ym, 1), day);
+  }
+  function calendarUrl(r) {
+    const start = nextDue(r.day);
+    const d = new Date(start + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    const end = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+    // วันที่ 29-31: เดือนที่ไม่มีวันนั้นให้ใช้วันสุดท้ายของเดือน
+    const rule = r.day > 28
+      ? `RRULE:FREQ=MONTHLY;BYMONTHDAY=${r.day},-1;BYSETPOS=1`
+      : `RRULE:FREQ=MONTHLY;BYMONTHDAY=${r.day}`;
+    const c = catOf(r.categoryId);
+    const isIn = r.type === 'income';
+    const goal = r.goalId && goalName(r.goalId);
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `${isIn ? '💰' : '💳'} ${r.name} ${fmt(r.amount)}`,
+      dates: `${start.replaceAll('-', '')}/${end}`,
+      recur: rule,
+      ctz: 'Asia/Bangkok',
+      details: [
+        `${isIn ? 'รายรับประจำ' : 'รายจ่ายประจำ'} ${fmt(r.amount)} ทุกวันที่ ${r.day}`,
+        `หมวด: ${c.name}${goal ? ` → เป้า "${goal}"` : ''}`,
+        '',
+        `ยืนยันรายการในแอปกระปุกออม: ${location.origin}${location.pathname}#/money`,
+      ].join('\n'),
+    });
+    return 'https://calendar.google.com/calendar/render?' + params.toString().replace(/\+/g, '%20');
+  }
+  function addToCalendar(r) {
+    window.open(calendarUrl(r), '_blank', 'noopener');
+  }
+
   /* ================= รายการประจำ ================= */
   const recDialog = q('#recDialog');
   const recFormDialog = q('#recFormDialog');
@@ -441,13 +479,14 @@ window.Money = (() => {
           ${catBadge(c)}
           <div class="meta"><div class="note">${esc(r.name)}</div><div class="date">ทุกวันที่ ${r.day} · ${esc(c.name)}${r.goalId && goalName(r.goalId) ? ' → ' + esc(goalName(r.goalId)) : ''}</div></div>
           <div class="amt ${type === 'income' ? 'in' : 'out'}">${fmt(r.amount)}</div>
+          <button type="button" class="icon-btn small cal-btn" data-cal="${r.id}" aria-label="เพิ่ม ${esc(r.name)} ลง Google Calendar">${ico('calendar-plus')}</button>
         </div>`;
       })
       .join('') || `<div class="muted small pad">ยังไม่มี</div>`;
     const inc = total('income'), exp = total('expense');
     q('#recBody').innerHTML = `
       <h2>${ico('repeat')} รายการประจำ</h2>
-      <p class="muted small">ทุกเดือนจะขึ้นให้กดยืนยันในหน้ารายรับรายจ่าย แก้ยอดก่อนยืนยันได้</p>
+      <p class="muted small">ทุกเดือนจะขึ้นให้กดยืนยันในหน้ารายรับรายจ่าย แก้ยอดก่อนยืนยันได้ · กด 📅 เพื่อเพิ่มนัดเตือนใน Google Calendar</p>
       <div class="rec-sum">
         <div><span class="k">รับประจำ</span><b class="amt in">${fmt(inc)}</b></div>
         <div><span class="k">จ่ายประจำ</span><b class="amt out">${fmt(exp)}</b></div>
@@ -465,6 +504,8 @@ window.Money = (() => {
   }
 
   q('#recBody').addEventListener('click', (ev) => {
+    const cal = ev.target.closest('[data-cal]');
+    if (cal) return addToCalendar(state.recurring.find((x) => x.id === cal.dataset.cal));
     const row = ev.target.closest('[data-rec]');
     if (row) return openRecForm(row.dataset.rec);
     if (ev.target.closest('[data-rec-add]')) openRecForm();
@@ -489,6 +530,7 @@ window.Money = (() => {
     recForm.goalId.innerHTML = '';
     setRecType(r?.type || 'expense', r?.categoryId, r ? (r.goalId && goalById(r.goalId) ? r.goalId : '') : undefined);
     q('#recDeleteBtn').hidden = !r;
+    q('#recCalBtn').hidden = !r;
     recFormDialog.showModal();
   }
 
@@ -511,6 +553,19 @@ window.Money = (() => {
     if (recDialog.open) renderRecList();
     render({ keepScroll: true });
     toast('บันทึกรายการประจำแล้ว');
+  });
+
+  q('#recCalBtn').addEventListener('click', () => {
+    const r = state.recurring.find((x) => x.id === editingRecId);
+    // ใช้ค่าที่กำลังแก้ในฟอร์ม (ยังไม่ต้องกดบันทึก)
+    addToCalendar({
+      ...r,
+      name: recForm.name.value.trim() || r.name,
+      amount: round2(recForm.amount.value) || r.amount,
+      day: Math.min(31, Math.max(1, parseInt(recForm.day.value, 10) || r.day)),
+      type: recForm.rtype.value,
+      categoryId: recForm.categoryId.value || r.categoryId,
+    });
   });
 
   q('#recDeleteBtn').addEventListener('click', () => {
@@ -646,5 +701,5 @@ window.Money = (() => {
     toast(`ออม ${fmt(amount)} เข้า "${g.name}" แล้ว`);
   });
 
-  return { renderMoney, openTxnForm, ensureCategories, onEntryChanged, onEntryDeleted, onGoalDeleted, pendingOf, curMonth };
+  return { calendarUrl, renderMoney, openTxnForm, ensureCategories, onEntryChanged, onEntryDeleted, onGoalDeleted, pendingOf, curMonth };
 })();
