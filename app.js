@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
 const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [
@@ -149,6 +149,8 @@ const GOAL_TYPES = {
   debt: { label: 'หนี้/ผ่อน', icon: 'credit-card', in: 'จ่ายงวด', out: 'ปรับลด/คืน' },
 };
 const goalType = (g) => (GOAL_TYPES[g?.type] ? g.type : 'saving');
+// เป้าหนี้แบบงวดเท่ากันที่ติ๊ก "เป็นเงินสะสม" (เช่น ประกันสังคม): แสดงยอดสะสม ไม่นับในยอดหนี้
+const isAccrue = (g) => goalType(g) === 'debt' && g.debtMode !== 'steps' && !!g.accrue;
 const numOr0 = (v) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 const hasMarket = (g) => g.marketValue !== undefined && g.marketValue !== null && g.marketValue !== '';
 
@@ -260,9 +262,10 @@ function goalCard(g) {
   let amount, sub, ratio = null, amountLabel = '';
   if (t === 'debt') {
     const d = debtInfo(g);
-    amount = fmt(d.remaining);
-    amountLabel = 'คงเหลือ';
-    sub = !d.left ? 'จ่ายครบแล้ว 🎉'
+    amount = fmt(isAccrue(g) ? d.paid : d.remaining);
+    amountLabel = isAccrue(g) ? 'สะสม' : 'คงเหลือ';
+    sub = isAccrue(g) ? (d.left ? `ส่งแล้ว ${d.paidCount}/${d.count} งวด · เหลือ ${d.left} งวด` : `ส่งครบ ${d.count} งวดแล้ว 🎉`)
+      : !d.left ? 'จ่ายครบแล้ว 🎉'
       : d.mode === 'steps' && d.short ? `ตารางผ่อนไม่พอ · ขาดอีก ${fmt(d.short)}`
       : d.mode === 'steps' ? `เหลือ ${durationText(d.left)} · งวดถัดไป ${fmt(d.inst)}`
       : `เหลือ ${d.left} งวด · งวดละ ${fmt(d.inst)}`;
@@ -307,8 +310,8 @@ function renderHome() {
         <button class="btn primary" data-action="new-goal">${ico('plus')} สร้างเป้าหมายแรก</button>
       </div>`;
   }
-  const byType = { saving: [], invest: [], debt: [] };
-  for (const g of state.goals) byType[goalType(g)].push(g);
+  const byType = { saving: [], invest: [], debt: [], accrue: [] };
+  for (const g of state.goals) byType[isAccrue(g) ? 'accrue' : goalType(g)].push(g);
 
   const savingTotal = [...byType.saving, ...byType.invest].reduce((s, g) => s + goalValue(g), 0);
   const debtLeft = byType.debt.reduce((s, g) => s + debtInfo(g).remaining, 0);
@@ -328,6 +331,7 @@ function renderHome() {
         : `ต้นทุน ${fmt(investCostAll)}`;
     }
     if (k === 'debt') return `คงเหลือ <b>${fmt(debtLeft)}</b>`;
+    if (k === 'accrue') return `สะสม <b>${fmt(byType.accrue.reduce((s, g) => s + debtInfo(g).paid, 0))}</b>`;
     return '';
   };
 
@@ -340,7 +344,7 @@ function renderHome() {
         : '';
       return `
       <div class="section-title">
-        <h2>${GOAL_TYPES[k].label}</h2>
+        <h2>${k === 'accrue' ? 'เงินสะสม' : GOAL_TYPES[k].label}</h2>
         <div class="st-right">${sum ? `<span class="st-sum">${sum}</span>` : ''}${add}</div>
       </div>
       ${byType[k].map(goalCard).join('')}`;
@@ -413,6 +417,23 @@ function renderGoal(g) {
         </div>
         ${d.short ? `<div class="debt-warn">ตารางผ่อนที่ใส่ไว้ยังไม่พอ ขาดอีก ${fmt(d.short)} — กดแก้ไขเป้าหมายเพื่อเพิ่มช่วง</div>` : ''}
         ${d.left ? `<button class="btn primary pay-btn" data-action="pay-debt" data-id="${g.id}">${ico('check')} จ่ายงวด ${monthLabel(d.lastOffset - d.left + 1)} · ${fmt(Math.min(d.inst, d.remaining))}</button>` : ''}
+      </section>`;
+  } else if (isAccrue(g)) {
+    const d = debtInfo(g);
+    head = `
+      <section class="card goal-detail-head">
+        ${goalBadge(g, 'lg')}
+        <div class="muted small">ยอดสะสม</div>
+        <div class="big" style="color:${g.color}">${fmt(d.paid)}</div>
+        <div class="muted">${d.total ? `ส่งแล้ว ${d.paidCount}/${d.count} งวด (${Math.round((d.paidCount / d.count) * 100)}%)` : 'ยังไม่ได้ตั้งค่างวด — กดแก้ไขเป้าหมาย'}</div>
+        ${progressBar(g, d.count ? d.paidCount / d.count : null)}
+        <div class="stats">
+          <div class="stat"><div class="k">ส่งงวดละ</div><div class="v">${fmt(d.inst)}/${d.per === 12 ? 'ปี' : 'เดือน'}</div></div>
+          <div class="stat"><div class="k">เหลือ</div><div class="v">${d.left} งวด</div></div>
+          <div class="stat"><div class="k">ต้องส่งอีก</div><div class="v">${fmt(d.remaining)}</div></div>
+          <div class="stat"><div class="k">งวดสุดท้ายประมาณ</div><div class="v">${d.left ? monthLabel(d.lastOffset) : 'ครบแล้ว 🎉'}</div></div>
+        </div>
+        ${d.left ? `<button class="btn primary pay-btn" data-action="pay-debt" data-id="${g.id}">${ico('check')} ส่งงวดที่ ${d.paidCount + 1} · ${fmt(Math.min(d.inst, d.remaining))}</button>` : ''}
       </section>`;
   } else if (t === 'debt') {
     const d = debtInfo(g);
@@ -647,6 +668,7 @@ function openGoalForm(id) {
   goalForm.period.value = g?.period || 'month';
   goalForm.paidBefore.value = g?.paidBefore || '';
   goalForm.paidBeforeAmount.value = g?.paidBeforeAmount || '';
+  goalForm.accrue.checked = !!g?.accrue;
   goalForm.debtMode.value = g?.debtMode === 'steps' ? 'steps' : 'fixed';
   goalForm.debtBalance.value = g?.debtBalance || '';
   goalForm.debtAsOf.value = g?.debtAsOf || today();
@@ -700,6 +722,7 @@ goalForm.addEventListener('submit', (ev) => {
       period: goalForm.period.value,
       paidBefore: Math.round(numOr0(goalForm.paidBefore.value)),
       paidBeforeAmount: numOr0(goalForm.paidBeforeAmount.value),
+      accrue: goalForm.accrue.checked,
     });
     if (!(data.installment > 0) || !(data.installments > 0)) {
       toast('ใส่ค่างวดและจำนวนงวดก่อน');
@@ -875,7 +898,7 @@ function payDebt(id) {
   state.entries.push({ id: uid(), createdAt: Date.now(), goalId: g.id, type: 'in', amount, date: today(), note: label });
   save();
   render({ keepScroll: true });
-  toast(`จ่าย${label} · ${fmt(amount)} แล้ว`);
+  toast(`${isAccrue(g) ? "ส่ง" : "จ่าย"}${label} · ${fmt(amount)} แล้ว`);
 }
 
 /* ================= เมนู / สำรองข้อมูล ================= */

@@ -468,6 +468,10 @@ html, body { overflow-x: clip; }
 .gtip { margin: 0; }
 #debtPreview { margin: 0; color: var(--primary); }
 .dfields { display: flex; flex-direction: column; gap: 10px; }
+dialog label.check-line { flex-direction: row; align-items: flex-start; gap: 10px; background: var(--bg); border-radius: 12px; padding: 10px 12px; color: var(--text); cursor: pointer; }
+.check-line input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--primary); }
+.check-line span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.check-line small { color: var(--muted); font-size: .8rem; }
 #debtStepsPreview { margin: 0; }
 #debtStepsPreview .warn { color: var(--danger); }
 #debtStepsPreview .ok { color: var(--primary); }
