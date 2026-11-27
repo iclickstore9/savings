@@ -1,7 +1,7 @@
 // แคชไฟล์ไว้ให้เปิดได้ตอนออฟไลน์ (ข้อมูลเงินออมอยู่ใน localStorage ไม่เกี่ยวกับไฟล์นี้)
 // กลยุทธ์: ไฟล์โค้ด (html/js/css) = เน็ตก่อน → ได้เวอร์ชันใหม่ทันที, ออฟไลน์ค่อยใช้แคช
 //          ฟอนต์/ไอคอน = แคชก่อน (ไม่ค่อยเปลี่ยน)
-const CACHE = 'kapook-om-v18';
+const CACHE = 'kapook-om-v19';
 const FILES = [
   './', 'index.html', 'style.css', 'themes.css', 'theme.js', 'fonts.css', 'icons.js', 'plan.js', 'money.js', 'budget.js', 'app.js', 'cloud.js', 'firebase-config.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '18';
+const APP_VERSION = '19';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
 const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [
@@ -229,10 +229,14 @@ function debtInfo(g) {
   const inst = numOr0(g.installment);
   const count = Math.round(numOr0(g.installments));
   const per = g.period === 'year' ? 12 : 1;
-  const total = inst * count;
-  const paid = Math.round(numOr0(g.paidBefore)) * inst + balanceOf(g.id);
+  // งวดที่จ่ายก่อนเริ่มบันทึก: ถ้าใส่ยอดจริงไว้ (ค่างวดเดิมไม่เท่ากัน) ใช้ยอดนั้น ไม่งั้นคิด งวด × ค่างวดปัจจุบัน
+  const before = Math.min(count, Math.round(numOr0(g.paidBefore)));
+  const beforeAmt = numOr0(g.paidBeforeAmount) > 0 ? numOr0(g.paidBeforeAmount) : before * inst;
+  const logged = balanceOf(g.id);
+  const total = beforeAmt + (count - before) * inst;
+  const paid = beforeAmt + logged;
   const remaining = Math.max(0, total - paid);
-  const paidCount = inst > 0 ? Math.min(count, Math.floor((paid + 0.005) / inst)) : 0;
+  const paidCount = inst > 0 ? Math.min(count, before + Math.max(0, Math.floor((logged + 0.005) / inst))) : 0;
   const left = inst > 0 && remaining > 0.005 ? Math.ceil(remaining / inst - 1e-9) : 0;
   // จ่ายงวดของรอบนี้ไปแล้วหรือยัง → งวดสุดท้ายประมาณเดือนไหน
   const ym = today().slice(0, 7), yr = ym.slice(0, 4);
@@ -529,9 +533,15 @@ function updateDebtPreview() {
   const inst = numOr0(goalForm.installment.value);
   const count = Math.round(numOr0(goalForm.installments.value));
   const before = Math.round(numOr0(goalForm.paidBefore.value));
+  const beforeAmt = numOr0(goalForm.paidBeforeAmount.value);
   const unit = goalForm.period.value === 'year' ? 'ปี' : 'เดือน';
+  const b = Math.min(before, count);
+  const paidAmt = beforeAmt > 0 ? beforeAmt : b * inst;
+  const rest = (count - b) * inst;
   $('#debtPreview').textContent = inst && count
-    ? `ยอดทั้งหมด ${fmt(inst * count)} · ${count} งวด (${count} ${unit})${before ? ` · จ่ายแล้ว ${before} งวด เหลือ ${Math.max(0, count - before)} งวด` : ''}`
+    ? before
+      ? `จ่ายแล้ว ${b} งวด ${fmt(paidAmt)} · เหลือ ${count - b} งวด ${fmt(rest)} · รวม ${fmt(paidAmt + rest)}`
+      : `ยอดทั้งหมด ${fmt(inst * count)} · ${count} งวด (${count} ${unit})`
     : 'ใส่ค่างวดและจำนวนงวด เพื่อคำนวณยอดคงเหลือและงวดที่เหลือ';
 }
 
@@ -617,7 +627,7 @@ goalForm.addEventListener('change', (ev) => {
   if (ev.target.name === 'debtMode') showDebtMode(ev.target.value);
 });
 goalForm.addEventListener('input', (ev) => {
-  if (['installment', 'installments', 'paidBefore'].includes(ev.target.name)) updateDebtPreview();
+  if (['installment', 'installments', 'paidBefore', 'paidBeforeAmount'].includes(ev.target.name)) updateDebtPreview();
   if (['debtBalance', 'debtAsOf'].includes(ev.target.name)) updateDebtStepsPreview();
 });
 goalForm.period.addEventListener('change', updateDebtPreview);
@@ -636,6 +646,7 @@ function openGoalForm(id) {
   goalForm.installments.value = g?.installments || '';
   goalForm.period.value = g?.period || 'month';
   goalForm.paidBefore.value = g?.paidBefore || '';
+  goalForm.paidBeforeAmount.value = g?.paidBeforeAmount || '';
   goalForm.debtMode.value = g?.debtMode === 'steps' ? 'steps' : 'fixed';
   goalForm.debtBalance.value = g?.debtBalance || '';
   goalForm.debtAsOf.value = g?.debtAsOf || today();
@@ -688,6 +699,7 @@ goalForm.addEventListener('submit', (ev) => {
       installments: Math.round(numOr0(goalForm.installments.value)),
       period: goalForm.period.value,
       paidBefore: Math.round(numOr0(goalForm.paidBefore.value)),
+      paidBeforeAmount: numOr0(goalForm.paidBeforeAmount.value),
     });
     if (!(data.installment > 0) || !(data.installments > 0)) {
       toast('ใส่ค่างวดและจำนวนงวดก่อน');

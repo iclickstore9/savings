@@ -231,6 +231,9 @@
             <input name="paidBefore" type="number" inputmode="numeric" min="0" step="1" placeholder="0" />
           </label>
         </div>
+        <label>ยอดที่จ่ายไปแล้วจริง (บาท) <small>ไม่ใส่ก็ได้ — ใส่เมื่อค่างวดเดิมไม่เท่ากับตอนนี้</small>
+          <input name="paidBeforeAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="คิดจาก งวด × ค่างวด" />
+        </label>
         <p class="muted small" id="debtPreview"></p>
         </div>
       </div>
