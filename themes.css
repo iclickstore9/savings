@@ -20,7 +20,8 @@ html[data-mode="dark"][data-accent="slate"] { --primary: #cbd5e1; --primary-2: #
 
 /* ส่วนตั้งค่าธีมในเมนู */
 .theme-box { display: flex; flex-direction: column; gap: 10px; }
-.accent-row { display: flex; flex-wrap: wrap; gap: 12px; }
+#themeBox { display: flex; flex-direction: column; gap: 16px; }
+.accent-row { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 4px 4px; }
 .accent-row button {
   width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--card); outline: 2px solid transparent;
   cursor: pointer; display: grid; place-items: center; color: #fff; padding: 0;
