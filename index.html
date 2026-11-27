@@ -15,6 +15,8 @@
   <link rel="preload" href="fonts/prompt-thai-400.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="fonts.css" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="themes.css" />
+  <script src="theme.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -275,6 +277,11 @@
         <p id="syncInfo" class="muted small"></p>
         <button class="btn block primary-soft" id="loginBtn" hidden><span data-ico="log-in"></span> เข้าสู่ระบบด้วย Google</button>
         <button class="btn block" id="logoutBtn" hidden><span data-ico="log-out"></span> ออกจากระบบ</button>
+      </div>
+
+      <div class="theme-box">
+        <div class="sync-head"><span data-ico="sparkles"></span> <b>ธีม</b></div>
+        <div id="themeBox"></div>
       </div>
 
       <p class="muted" id="localNote">ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น ควร Export สำรองเป็นระยะ</p>

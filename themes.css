@@ -1,0 +1,30 @@
+/* ชุดสีหลัก (สร้างจากรายการ ACCENTS) — สีเขียวน้ำทะเลเป็นค่าเริ่มต้นใน style.css
+ * สีรับ/จ่าย (--in/--out) ไม่เปลี่ยนตามธีม เพื่อไม่ให้สับสน */
+html[data-accent="blue"] { --primary: #1d4ed8; --primary-2: #3b82f6; --on-primary: #ffffff; }
+html[data-accent="purple"] { --primary: #6d28d9; --primary-2: #8b5cf6; --on-primary: #ffffff; }
+html[data-accent="pink"] { --primary: #be185d; --primary-2: #ec4899; --on-primary: #ffffff; }
+html[data-accent="gold"] { --primary: #a16207; --primary-2: #ca8a04; --on-primary: #ffffff; }
+html[data-accent="slate"] { --primary: #334155; --primary-2: #64748b; --on-primary: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-mode="light"])[data-accent="blue"] { --primary: #60a5fa; --primary-2: #1d4ed8; --on-primary: #081a3a; }
+  html:not([data-mode="light"])[data-accent="purple"] { --primary: #a78bfa; --primary-2: #6d28d9; --on-primary: #1c0f38; }
+  html:not([data-mode="light"])[data-accent="pink"] { --primary: #f472b6; --primary-2: #be185d; --on-primary: #3a0a20; }
+  html:not([data-mode="light"])[data-accent="gold"] { --primary: #facc15; --primary-2: #a16207; --on-primary: #2a2003; }
+  html:not([data-mode="light"])[data-accent="slate"] { --primary: #cbd5e1; --primary-2: #475569; --on-primary: #0f172a; }
+}
+html[data-mode="dark"][data-accent="blue"] { --primary: #60a5fa; --primary-2: #1d4ed8; --on-primary: #081a3a; }
+html[data-mode="dark"][data-accent="purple"] { --primary: #a78bfa; --primary-2: #6d28d9; --on-primary: #1c0f38; }
+html[data-mode="dark"][data-accent="pink"] { --primary: #f472b6; --primary-2: #be185d; --on-primary: #3a0a20; }
+html[data-mode="dark"][data-accent="gold"] { --primary: #facc15; --primary-2: #a16207; --on-primary: #2a2003; }
+html[data-mode="dark"][data-accent="slate"] { --primary: #cbd5e1; --primary-2: #475569; --on-primary: #0f172a; }
+
+/* ส่วนตั้งค่าธีมในเมนู */
+.theme-box { display: flex; flex-direction: column; gap: 10px; }
+.accent-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.accent-row button {
+  width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--card); outline: 2px solid transparent;
+  cursor: pointer; display: grid; place-items: center; color: #fff; padding: 0;
+}
+.accent-row button .ico { width: 18px; height: 18px; stroke-width: 3; opacity: 0; }
+.accent-row button.sel { outline-color: var(--text); }
+.accent-row button.sel .ico { opacity: 1; }

@@ -14,16 +14,25 @@
   --danger: #b91c1c;
   --radius: 18px;
   --shadow: 0 1px 2px rgba(16, 24, 22, .04), 0 4px 16px rgba(16, 24, 22, .05);
+  --card-border: transparent;
+  color-scheme: light;
   font-family: "Prompt", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-weight: 400;
 }
+/* โหมดมืด: อัตโนมัติตามมือถือ (data-mode ไม่ได้ตั้ง/auto) หรือบังคับด้วย data-mode="dark" */
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not([data-mode="light"]) {
     --bg: #0e1312; --card: #182020; --text: #e9f0ee; --muted: #93a29f;
     --line: #26302e; --primary: #2dd4bf; --primary-2: #0f766e; --on-primary: #04211e;
     --in: #4ade80; --in-bg: #14532d55; --out: #fb923c; --out-bg: #7c2d1255; --danger: #f87171;
-    --shadow: none;
+    --shadow: none; --card-border: var(--line); color-scheme: dark;
   }
+}
+html[data-mode="dark"] {
+    --bg: #0e1312; --card: #182020; --text: #e9f0ee; --muted: #93a29f;
+    --line: #26302e; --primary: #2dd4bf; --primary-2: #0f766e; --on-primary: #04211e;
+    --in: #4ade80; --in-bg: #14532d55; --out: #fb923c; --out-bg: #7c2d1255; --danger: #f87171;
+    --shadow: none; --card-border: var(--line); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -80,7 +89,7 @@ main { max-width: 560px; margin: 0 auto; padding: 8px 16px 16px; }
   background: var(--card); border-radius: var(--radius); padding: 16px;
   box-shadow: var(--shadow); margin-bottom: 12px; border: 1px solid var(--line);
 }
-@media (prefers-color-scheme: light) { .card { border-color: transparent; } }
+.card { border-color: var(--card-border); }
 .goal-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: transform .1s; }
 .goal-card:active { transform: scale(.985); }
 .goal-head { display: flex; align-items: center; gap: 12px; }
@@ -348,7 +357,7 @@ html, body { overflow-x: clip; }
   display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 16px;
   background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; min-width: 0;
 }
-@media (prefers-color-scheme: light) { .ql { border-color: transparent; box-shadow: var(--shadow); } }
+.ql { border-color: var(--card-border); box-shadow: var(--shadow); }
 .ql .ico { color: var(--primary); width: 20px; height: 20px; }
 .ql span { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; }
 .ql b { font-weight: 600; color: var(--muted); font-size: .85rem; }
