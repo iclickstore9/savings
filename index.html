@@ -192,6 +192,26 @@
 
       <!-- หนี้/ผ่อน -->
       <div class="gfields" data-for="debt">
+        <div class="segmented">
+          <label><input type="radio" name="debtMode" value="fixed" checked /><span>งวดเท่ากัน</span></label>
+          <label><input type="radio" name="debtMode" value="steps" /><span>ขั้นบันได / ยกยอดมา</span></label>
+        </div>
+        <div class="dfields" data-dmode="steps" hidden>
+          <div class="two-col">
+            <label>ยอดหนี้คงเหลือ (บาท)
+              <input name="debtBalance" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 58000" />
+            </label>
+            <label>ณ วันที่
+              <input name="debtAsOf" type="date" />
+            </label>
+          </div>
+          <div class="sub-head"><span>ตารางผ่อนรายเดือน</span><small>เริ่มเดือนของวันที่ด้านบน</small></div>
+          <div class="row-head"><span>ค่างวด/เดือน</span><span>นานกี่เดือน</span></div>
+          <div class="rows" id="debtSteps"></div>
+          <button type="button" class="link-btn" id="debtStepAdd"></button>
+          <p class="muted small" id="debtStepsPreview"></p>
+        </div>
+        <div class="dfields" data-dmode="fixed">
         <div class="two-col">
           <label>ค่างวด (บาท)
             <input name="installment" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 9500" />
@@ -212,6 +232,7 @@
           </label>
         </div>
         <p class="muted small" id="debtPreview"></p>
+        </div>
       </div>
 
       <label>ไอคอน

@@ -467,6 +467,11 @@ html, body { overflow-x: clip; }
 .gfields { display: flex; flex-direction: column; gap: 10px; }
 .gtip { margin: 0; }
 #debtPreview { margin: 0; color: var(--primary); }
+.dfields { display: flex; flex-direction: column; gap: 10px; }
+#debtStepsPreview { margin: 0; }
+#debtStepsPreview .warn { color: var(--danger); }
+#debtStepsPreview .ok { color: var(--primary); }
+.debt-warn { color: var(--danger); font-size: .85rem; margin-top: 6px; }
 .goal-text { min-width: 0; }
 .goal-sub .ico.pl-ico { width: 14px; height: 14px; vertical-align: -2px; }
 .goal-amount small { display: block; font-size: .7rem; font-weight: 400; color: var(--muted); }

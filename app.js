@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '17';
+const APP_VERSION = '18';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
 const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [
@@ -165,7 +165,67 @@ function investInfo(g) {
   return { cost, value, pl, pct: cost > 0 ? (pl / cost) * 100 : 0, known: hasMarket(g) };
 }
 
+// ---------- หนี้แบบขั้นบันได / ยกยอดมา ----------
+// debtBalance = ยอดคงเหลือ ณ วันที่ debtAsOf, debtSteps = [{amount, months}] เริ่มเดือนของ debtAsOf
+// งวดสุดท้ายที่ไม่ใส่จำนวนเดือน = จ่ายยอดนั้นไปเรื่อยๆ จนครบ
+const ymDiff = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+function ymLabel(ym, add = 0) {
+  const d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + add, 1);
+  return `${MONTHS_TH[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+function stepAmountAt(steps, i) {
+  let start = 0;
+  for (let k = 0; k < steps.length; k++) {
+    const m = Math.round(numOr0(steps[k].months));
+    const last = k === steps.length - 1;
+    if (i < start + m || (last && !m)) return { amount: numOr0(steps[k].amount), step: k };
+    start += m;
+  }
+  return { amount: 0, step: -1 };
+}
+const isOpenEnded = (steps) => steps.length > 0 && !Math.round(numOr0(steps[steps.length - 1].months));
+const scheduleTotal = (steps) => steps.reduce((s, x) => s + numOr0(x.amount) * Math.round(numOr0(x.months)), 0);
+const scheduleMonths = (steps) => steps.reduce((s, x) => s + Math.round(numOr0(x.months)), 0);
+
+// เดินตามตารางจากเดือน idx จนจ่ายครบ remaining → จำนวนเดือน + ยอดที่ตารางไม่พอ
+function walkSchedule(steps, idx, remaining) {
+  let left = 0, rem = remaining;
+  while (rem > 0.005 && left < 1200) {
+    const a = stepAmountAt(steps, idx + left).amount;
+    if (!(a > 0)) break;
+    rem -= a;
+    left++;
+  }
+  return { left, short: rem > 0.005 ? rem : 0 };
+}
+
+function debtStepInfo(g) {
+  const steps = (g.debtSteps || []).filter((s) => numOr0(s.amount) > 0);
+  const asOf = g.debtAsOf || today();
+  const total = numOr0(g.debtBalance);
+  const list = entriesOf(g.id).filter((e) => e.date >= asOf);
+  const paid = list.reduce((s, e) => s + signed(e), 0);
+  const remaining = Math.max(0, total - paid);
+  const ym = today().slice(0, 7);
+  const curIdx = Math.max(0, ymDiff(asOf.slice(0, 7), ym));
+  const paidNow = list.some((e) => e.type === 'in' && e.date.startsWith(ym));
+  const nextIdx = curIdx + (paidNow ? 1 : 0);
+  const next = stepAmountAt(steps, nextIdx);
+  const w = remaining > 0.005 ? walkSchedule(steps, nextIdx, remaining) : { left: 0, short: 0 };
+  return {
+    mode: 'steps', steps, asOf, total, paid, remaining, per: 1,
+    inst: next.amount || (steps.length ? numOr0(steps[steps.length - 1].amount) : 0),
+    step: next.step, stepCount: steps.length,
+    paidCount: list.filter((e) => e.type === 'in').length,
+    left: remaining > 0.005 ? Math.max(1, w.left) : 0,
+    short: w.short,
+    lastOffset: w.left ? (paidNow ? 1 : 0) + w.left - 1 : 0,
+    pct: total > 0 ? Math.min(1, paid / total) : 0,
+  };
+}
+
 function debtInfo(g) {
+  if (g.debtMode === 'steps') return debtStepInfo(g);
   const inst = numOr0(g.installment);
   const count = Math.round(numOr0(g.installments));
   const per = g.period === 'year' ? 12 : 1;
@@ -198,7 +258,10 @@ function goalCard(g) {
     const d = debtInfo(g);
     amount = fmt(d.remaining);
     amountLabel = 'คงเหลือ';
-    sub = d.left ? `เหลือ ${d.left} งวด · งวดละ ${fmt(d.inst)}` : 'จ่ายครบแล้ว 🎉';
+    sub = !d.left ? 'จ่ายครบแล้ว 🎉'
+      : d.mode === 'steps' && d.short ? `ตารางผ่อนไม่พอ · ขาดอีก ${fmt(d.short)}`
+      : d.mode === 'steps' ? `เหลือ ${durationText(d.left)} · งวดถัดไป ${fmt(d.inst)}`
+      : `เหลือ ${d.left} งวด · งวดละ ${fmt(d.inst)}`;
     ratio = d.total ? d.pct : null;
   } else if (t === 'invest') {
     const iv = investInfo(g);
@@ -329,7 +392,25 @@ function renderGoal(g) {
   const totalOut = list.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
   let head;
 
-  if (t === 'debt') {
+  if (t === 'debt' && g.debtMode === 'steps') {
+    const d = debtInfo(g);
+    head = `
+      <section class="card goal-detail-head">
+        ${goalBadge(g, 'lg')}
+        <div class="muted small">ยอดคงเหลือ</div>
+        <div class="big" style="color:${g.color}">${fmt(d.remaining)}</div>
+        <div class="muted">จ่ายแล้ว ${fmt(d.paid)} จากยอดยกมา ${fmt(d.total)} (${Math.round(d.pct * 100)}%)</div>
+        ${progressBar(g, d.total ? d.pct : null)}
+        <div class="stats">
+          <div class="stat"><div class="k">งวดถัดไป${d.stepCount > 1 && d.step >= 0 ? ` · ช่วง ${d.step + 1}/${d.stepCount}` : ''}</div><div class="v">${fmt(d.inst)}/เดือน</div></div>
+          <div class="stat"><div class="k">เหลืออีก</div><div class="v">${d.left ? durationText(d.left) : '—'}</div></div>
+          <div class="stat"><div class="k">ยกยอดมาเมื่อ</div><div class="v">${fmtDate(d.asOf)}</div></div>
+          <div class="stat"><div class="k">งวดสุดท้ายประมาณ</div><div class="v">${d.left ? monthLabel(d.lastOffset) : 'ครบแล้ว 🎉'}</div></div>
+        </div>
+        ${d.short ? `<div class="debt-warn">ตารางผ่อนที่ใส่ไว้ยังไม่พอ ขาดอีก ${fmt(d.short)} — กดแก้ไขเป้าหมายเพื่อเพิ่มช่วง</div>` : ''}
+        ${d.left ? `<button class="btn primary pay-btn" data-action="pay-debt" data-id="${g.id}">${ico('check')} จ่ายงวด ${monthLabel(d.lastOffset - d.left + 1)} · ${fmt(Math.min(d.inst, d.remaining))}</button>` : ''}
+      </section>`;
+  } else if (t === 'debt') {
     const d = debtInfo(g);
     head = `
       <section class="card goal-detail-head">
@@ -454,11 +535,90 @@ function updateDebtPreview() {
     : 'ใส่ค่างวดและจำนวนงวด เพื่อคำนวณยอดคงเหลือและงวดที่เหลือ';
 }
 
+// ---- ตารางผ่อนขั้นบันไดในฟอร์ม ----
+let formSteps = [];
+const debtStepsBox = $('#debtSteps');
+$('#debtStepAdd').innerHTML = `${ico('plus')} เพิ่มช่วง`;
+
+function showDebtMode(mode) {
+  goalForm.querySelectorAll('[data-dmode]').forEach((el) => (el.hidden = el.dataset.dmode !== mode));
+  if (mode === 'steps') renderDebtSteps();
+}
+
+function renderDebtSteps() {
+  if (!formSteps.length) formSteps = [{ amount: '', months: '' }];
+  debtStepsBox.innerHTML = formSteps
+    .map((s, i) => `
+      <div class="step-row">
+        <span class="step-no">${i + 1}</span>
+        <div class="step-fields">
+          <label class="inline"><input type="number" inputmode="decimal" min="0" step="any" data-step="${i}.amount" value="${esc(s.amount)}" placeholder="บาท/เดือน" /></label>
+          <label class="inline"><input type="number" inputmode="numeric" min="0" step="1" data-step="${i}.months" value="${esc(s.months)}" placeholder="${i === formSteps.length - 1 ? 'จนครบ' : '0'}" /></label>
+        </div>
+        ${formSteps.length > 1 ? `<button type="button" class="row-del" data-step-del="${i}" aria-label="ลบ">${ico('x')}</button>` : ''}
+      </div>`)
+    .join('');
+  updateDebtStepsPreview();
+}
+
+function updateDebtStepsPreview() {
+  const box = $('#debtStepsPreview');
+  const steps = formSteps.filter((s) => numOr0(s.amount) > 0);
+  const bal = numOr0(goalForm.debtBalance.value);
+  const asOf = goalForm.debtAsOf.value || today();
+  if (!bal || !steps.length) {
+    box.innerHTML = 'ใส่ยอดคงเหลือ และค่างวดแต่ละช่วง เช่น 1,000 × 12 เดือน แล้ว 1,500 × 24 เดือน';
+    return;
+  }
+  const open = isOpenEnded(steps);
+  const w = walkSchedule(steps, 0, bal);
+  const lines = [];
+  if (!open) {
+    const tot = scheduleTotal(steps), months = scheduleMonths(steps);
+    lines.push(`ตารางรวม ${fmt(tot)} · ${months} เดือน (${durationText(months)})`);
+    const diff = tot - bal;
+    if (diff < -0.5) {
+      lines.push(`<span class="warn">น้อยกว่ายอดคงเหลือ ${fmt(-diff)} — หลังจบตารางจะยังเหลือหนี้</span> <button type="button" class="link-btn" id="debtUseTotal">ใช้ ${fmt(tot)} เป็นยอดคงเหลือ</button>`);
+    } else if (diff > 0.5) {
+      lines.push(`มากกว่ายอดคงเหลือ ${fmt(diff)} (ถ้ารวมดอกเบี้ยไว้ในค่างวด ใช้ยอดรวมตารางจะแม่นกว่า) <button type="button" class="link-btn" id="debtUseTotal">ใช้ ${fmt(tot)} เป็นยอดคงเหลือ</button>`);
+    } else lines.push('<span class="ok">ตรงกับยอดคงเหลือพอดี ✓</span>');
+  }
+  if (w.left && !w.short) lines.push(`<span class="ok">จ่ายครบใน ${durationText(w.left)} · งวดสุดท้ายประมาณ ${ymLabel(asOf.slice(0, 7), w.left - 1)}</span>`);
+  box.innerHTML = lines.join('<br>');
+}
+
+debtStepsBox.addEventListener('input', (ev) => {
+  const p = ev.target.dataset.step;
+  if (!p) return;
+  const [i, k] = p.split('.');
+  formSteps[+i][k] = ev.target.value;
+  updateDebtStepsPreview();
+});
+debtStepsBox.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-step-del]');
+  if (!b) return;
+  formSteps.splice(+b.dataset.stepDel, 1);
+  renderDebtSteps();
+});
+$('#debtStepAdd').addEventListener('click', () => {
+  formSteps.push({ amount: '', months: '' });
+  renderDebtSteps();
+  debtStepsBox.querySelector(`[data-step="${formSteps.length - 1}.amount"]`)?.focus();
+});
+$('#debtStepsPreview').addEventListener('click', (ev) => {
+  if (ev.target.closest('#debtUseTotal')) {
+    goalForm.debtBalance.value = Math.round(scheduleTotal(formSteps.filter((s) => numOr0(s.amount) > 0)) * 100) / 100;
+    updateDebtStepsPreview();
+  }
+});
+
 goalForm.addEventListener('change', (ev) => {
   if (ev.target.name === 'gtype') showGoalFields(ev.target.value);
+  if (ev.target.name === 'debtMode') showDebtMode(ev.target.value);
 });
 goalForm.addEventListener('input', (ev) => {
   if (['installment', 'installments', 'paidBefore'].includes(ev.target.name)) updateDebtPreview();
+  if (['debtBalance', 'debtAsOf'].includes(ev.target.name)) updateDebtStepsPreview();
 });
 goalForm.period.addEventListener('change', updateDebtPreview);
 
@@ -476,6 +636,11 @@ function openGoalForm(id) {
   goalForm.installments.value = g?.installments || '';
   goalForm.period.value = g?.period || 'month';
   goalForm.paidBefore.value = g?.paidBefore || '';
+  goalForm.debtMode.value = g?.debtMode === 'steps' ? 'steps' : 'fixed';
+  goalForm.debtBalance.value = g?.debtBalance || '';
+  goalForm.debtAsOf.value = g?.debtAsOf || today();
+  formSteps = (g?.debtSteps || []).map((s) => ({ amount: s.amount || '', months: s.months || '' }));
+  showDebtMode(goalForm.debtMode.value);
   goalForm.note.value = g?.note || '';
   selectIcon(g ? goalIcon(g) : TYPE_ICON_DEFAULT[t]);
   selectColor(g?.color || COLORS[state.goals.length % COLORS.length]);
@@ -496,8 +661,29 @@ goalForm.addEventListener('submit', (ev) => {
     target: type === 'debt' ? 0 : numOr0(goalForm.target.value),
     monthly: type === 'debt' ? 0 : numOr0(goalForm.monthly.value),
   };
-  if (type === 'debt') {
+  if (type === 'debt' && goalForm.debtMode.value === 'steps') {
+    const steps = formSteps
+      .filter((s) => numOr0(s.amount) > 0)
+      .map((s) => ({ amount: numOr0(s.amount), months: Math.round(numOr0(s.months)) }));
     Object.assign(data, {
+      debtMode: 'steps',
+      debtBalance: numOr0(goalForm.debtBalance.value),
+      debtAsOf: goalForm.debtAsOf.value || today(),
+      debtSteps: steps,
+    });
+    if (!(data.debtBalance > 0)) {
+      toast('ใส่ยอดหนี้คงเหลือก่อน');
+      goalForm.debtBalance.focus();
+      return;
+    }
+    if (!steps.length) {
+      toast('ใส่ค่างวดอย่างน้อย 1 ช่วง');
+      debtStepsBox.querySelector('input')?.focus();
+      return;
+    }
+  } else if (type === 'debt') {
+    Object.assign(data, {
+      debtMode: 'fixed',
       installment: numOr0(goalForm.installment.value),
       installments: Math.round(numOr0(goalForm.installments.value)),
       period: goalForm.period.value,
@@ -673,10 +859,11 @@ function payDebt(id) {
   const d = debtInfo(g);
   if (!d.left) return;
   const amount = Math.round(Math.min(d.inst, d.remaining) * 100) / 100;
-  state.entries.push({ id: uid(), createdAt: Date.now(), goalId: g.id, type: 'in', amount, date: today(), note: `งวดที่ ${d.paidCount + 1}` });
+  const label = d.mode === 'steps' ? `งวด ${monthLabel(d.lastOffset - d.left + 1)}` : `งวดที่ ${d.paidCount + 1}`;
+  state.entries.push({ id: uid(), createdAt: Date.now(), goalId: g.id, type: 'in', amount, date: today(), note: label });
   save();
   render({ keepScroll: true });
-  toast(`จ่ายงวดที่ ${d.paidCount + 1} · ${fmt(amount)} แล้ว`);
+  toast(`จ่าย${label} · ${fmt(amount)} แล้ว`);
 }
 
 /* ================= เมนู / สำรองข้อมูล ================= */
