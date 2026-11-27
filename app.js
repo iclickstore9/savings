@@ -2,7 +2,7 @@
 
 /* ================= ข้อมูล ================= */
 const STORAGE_KEY = 'kapook-om-v1'; // อย่าเปลี่ยน — เป็นที่เก็บข้อมูล
-const APP_VERSION = '16';
+const APP_VERSION = '17';
 // ชุดข้อมูลทั้งหมด (ต้องตรงกับ NAMES ใน cloud.js)
 const COLLECTIONS = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans'];
 const GOAL_ICONS = [

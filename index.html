@@ -293,6 +293,23 @@
     </div>
   </dialog>
 
+  <!-- ถามก่อนเข้าสู่ระบบ เมื่อในเครื่องมีข้อมูลอยู่แล้ว -->
+  <dialog id="loginChoiceDialog">
+    <div class="menu">
+      <h2>เครื่องนี้มีข้อมูลอยู่แล้ว</h2>
+      <p class="muted small" id="loginChoiceInfo"></p>
+      <button class="btn block primary" data-choice="merge"><span data-ico="refresh-cw"></span> รวมกับข้อมูลบนคลาวด์</button>
+      <p class="muted small">เก็บไว้ทั้งหมด ข้อมูลในเครื่องนี้จะขึ้นไปอยู่ในทุกเครื่องที่ใช้บัญชีเดียวกัน</p>
+      <button class="btn block danger" data-choice="cloud"><span data-ico="trash-2"></span> ล้างข้อมูลในเครื่องนี้ ใช้ของบนคลาวด์</button>
+      <p class="muted small">ข้อมูลในเครื่องนี้จะหายไป (ถ้าบนคลาวด์ยังไม่มีข้อมูล จะเก็บของในเครื่องไว้ให้)</p>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-choice="export"><span data-ico="download"></span> Export สำรองก่อน</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- อัปเดตมูลค่าการลงทุน -->
   <dialog id="marketDialog">
     <form id="marketForm" method="dialog">

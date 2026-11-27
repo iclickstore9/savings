@@ -214,6 +214,7 @@ input[name="amount"] { font-size: 1.5rem; font-weight: 600; padding: 10px 14px; 
 .btn.block { width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; }
 .btn.block .ico { color: var(--muted); }
 .btn.block.danger .ico { color: var(--danger); }
+.btn.block.primary .ico { color: var(--on-primary); }
 .btn:active { opacity: .8; }
 
 .toast {

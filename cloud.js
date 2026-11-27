@@ -8,6 +8,7 @@ import { firebaseConfig } from './firebase-config.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/13.4.0/';
 const SYNC_KEY = 'kapook-om-sync'; // จำว่าเครื่องนี้ผูกกับบัญชีไหนแล้ว
+const CHOICE_KEY = 'kapook-om-login-choice'; // merge | cloud (เก็บไว้เผื่อล็อกอินแบบ redirect ที่โหลดหน้าใหม่)
 const NAMES = ['goals', 'entries', 'txns', 'categories', 'recurring', 'plans']; // ต้องตรงกับ COLLECTIONS ใน app.js
 
 const bridge = window.appBridge;
@@ -141,9 +142,14 @@ async function main() {
     const ops = [];
     const merged = {};
     let uploaded = 0;
+    // ผู้ใช้เลือก "ล้างข้อมูลในเครื่อง" → ไม่อัปโหลดของในเครื่อง (ยกเว้นบนคลาวด์ยังว่าง จะได้ไม่เสียข้อมูลทั้งหมด)
+    const choice = localStorage.getItem(CHOICE_KEY);
+    const cloudEmpty = snaps.every((sn) => sn.docs.length === 0);
+    const useCloudOnly = choice === 'cloud' && !cloudEmpty;
+    if (choice === 'cloud' && cloudEmpty) bridge.toast('บนคลาวด์ยังไม่มีข้อมูล จึงเก็บข้อมูลในเครื่องไว้ให้');
     NAMES.forEach((name, i) => {
       const cloud = new Map(snaps[i].docs.map((d) => [d.id, d.data()]));
-      for (const item of s[name] || []) {
+      for (const item of useCloudOnly ? [] : s[name] || []) {
         const c = cloud.get(item.id);
         if (!c || (item.updatedAt || 0) > (c.updatedAt || 0)) {
           const data = clean({ ...item, updatedAt: item.updatedAt || Date.now() });
@@ -157,7 +163,9 @@ async function main() {
     await commitOps(ops);
     bridge.setData(merged);
     localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at: Date.now() }));
-    if (uploaded) bridge.toast(`อัปโหลดข้อมูลในเครื่อง ${uploaded} รายการแล้ว`);
+    localStorage.removeItem(CHOICE_KEY);
+    if (useCloudOnly) bridge.toast('ล้างข้อมูลในเครื่อง แล้วใช้ข้อมูลจากคลาวด์แล้ว');
+    else if (uploaded) bridge.toast(`อัปโหลดข้อมูลในเครื่อง ${uploaded} รายการแล้ว`);
   }
 
   function updateSyncStatus() {
@@ -237,7 +245,7 @@ async function main() {
 
   // ล็อกอิน: ใช้ popup ก่อน ถ้าเปิดไม่ได้ค่อยใช้ redirect
   A.getRedirectResult(auth).catch((e) => setStatus('error', 'ล็อกอินไม่สำเร็จ: ' + (e.code || e.message)));
-  el.login.addEventListener('click', async () => {
+  async function signIn() {
     const provider = new A.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     try {
@@ -249,6 +257,47 @@ async function main() {
         setStatus('error', 'ล็อกอินไม่สำเร็จ: ' + (e.code || e.message));
       }
     }
+  }
+
+  // นับข้อมูลที่ผู้ใช้คีย์เอง (หมวดตั้งต้น c-… ไม่นับ)
+  function localCount() {
+    const s = bridge.getState();
+    const n = (k) => (s[k] || []).length;
+    return {
+      goals: n('goals'),
+      entries: n('entries'),
+      txns: n('txns'),
+      recurring: n('recurring'),
+      cats: (s.categories || []).filter((c) => !String(c.id).startsWith('c-')).length,
+    };
+  }
+
+  // เครื่องนี้มีข้อมูลอยู่แล้ว → ถามก่อนว่าจะรวม หรือล้างของในเครื่อง
+  const choiceDialog = $('#loginChoiceDialog');
+  el.login.addEventListener('click', () => {
+    const c = localCount();
+    const total = c.goals + c.entries + c.txns + c.recurring + c.cats;
+    localStorage.removeItem(CHOICE_KEY);
+    if (!total) return signIn();
+    const parts = [
+      c.goals && `เป้าหมาย ${c.goals}`,
+      c.entries && `รายการออม ${c.entries}`,
+      c.txns && `รายรับ-จ่าย ${c.txns}`,
+      c.recurring && `รายการประจำ ${c.recurring}`,
+      c.cats && `หมวดที่เพิ่มเอง ${c.cats}`,
+    ].filter(Boolean);
+    $('#loginChoiceInfo').textContent = `ในเครื่องนี้มี ${parts.join(', ')} รายการ จะทำยังไงกับข้อมูลนี้เมื่อเข้าสู่ระบบ?`;
+    choiceDialog.showModal();
+  });
+  choiceDialog.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-choice]');
+    if (!b) return;
+    const choice = b.dataset.choice;
+    if (choice === 'export') return $('#exportBtn').click();
+    if (choice === 'cloud' && !confirm('ยืนยันล้างข้อมูลในเครื่องนี้? ข้อมูลที่ยังไม่เคยขึ้นคลาวด์จะหายไป')) return;
+    localStorage.setItem(CHOICE_KEY, choice);
+    choiceDialog.close();
+    signIn();
   });
 
   el.logout.addEventListener('click', async () => {
